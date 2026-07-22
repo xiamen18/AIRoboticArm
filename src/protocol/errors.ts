@@ -1,0 +1,66 @@
+export interface ProtocolErrorInfo {
+  source: string
+  message: string
+  suggestion: string
+}
+
+const ERROR_MAP: Record<number, ProtocolErrorInfo> = {
+  1001: { source: 'protocol', message: 'JSON 格式错误', suggestion: '检查 JSON 格式和报文结束符。' },
+  1002: { source: 'protocol', message: 'msg_type 非法', suggestion: '固定使用 command。' },
+  1003: { source: 'protocol', message: '不支持的 cmd', suggestion: '检查命令名称。' },
+  1004: { source: 'protocol', message: '缺少必填字段', suggestion: '检查通用字段和命令参数。' },
+  1005: { source: 'protocol', message: '字段类型错误', suggestion: '检查字段类型。' },
+  1006: { source: 'protocol', message: '参数非法或超范围', suggestion: '检查枚举、区域、孔位、RGB 和运动参数。' },
+  1007: { source: 'protocol', message: 'request_id 重复', suggestion: '更换请求编号。' },
+  1008: { source: 'protocol', message: 'params 格式错误', suggestion: 'params 必须是对象。' },
+  2001: { source: 'device', message: '设备忙', suggestion: '等待当前动作完成后重试。' },
+  2002: { source: 'device', message: '当前状态不允许执行', suggestion: '检查设备模式与运行状态。' },
+  2003: { source: 'safety', message: '急停触发', suggestion: '解除急停后恢复或复位。' },
+  2004: { source: 'safety', message: '安全门或安全区域触发', suggestion: '确认安全区域状态。' },
+  2005: { source: 'pneumatic', message: '气压不足', suggestion: '检查气源和气压开关。' },
+  2006: { source: 'device', message: '设备自检失败', suggestion: '排除模块异常后重新自检。' },
+  2007: { source: 'device', message: '设备回零失败', suggestion: '检查机械臂、横移杆和传感器。' },
+  2008: { source: 'device', message: '设备复位失败', suggestion: '检查保护状态和模块报警。' },
+  2009: { source: 'device', message: '保护状态未解除', suggestion: '解除保护原因后再执行。' },
+  3001: { source: 'camera', message: '相机离线', suggestion: '检查相机连接、供电和通信。' },
+  3002: { source: 'camera', message: '拍照失败', suggestion: '检查触发、光源和图像采集。' },
+  3003: { source: 'vision', message: '区域识别失败', suggestion: '重新拍照并检查遮挡和光照。' },
+  3004: { source: 'barcode', message: '二维码识别失败', suggestion: '重新拍照或人工确认。' },
+  3005: { source: 'barcode', message: '二维码质量不足', suggestion: '调整姿态、光源或清洁二维码。' },
+  3006: { source: 'vision', message: '样品盘二维码不匹配', suggestion: '核对记录与视觉结果。' },
+  3007: { source: 'vision', message: '样品二维码不匹配', suggestion: '核对样品二维码。' },
+  4001: { source: 'area', message: 'area_type 非法', suggestion: '使用 transfer、platform 或 test_area。' },
+  4002: { source: 'area', message: 'area_id 不存在', suggestion: '检查区域编号范围。' },
+  4003: { source: 'motion', message: '源位无样品', suggestion: '检查源区域状态。' },
+  4004: { source: 'motion', message: '目标位占用', suggestion: '检查目标区域状态。' },
+  4005: { source: 'motion', message: '样品盘不存在或未识别', suggestion: '重新扫码确认样品盘。' },
+  4006: { source: 'motion', message: '孔位 ID 非法', suggestion: '样品盘使用 1-10，test_area 使用 NULL。' },
+  4007: { source: 'motion', message: '搬运动作失败', suggestion: '检查机械臂、电爪、样品姿态和路径。' },
+  4008: { source: 'motion', message: '放置失败', suggestion: '检查目标位、电爪释放和样品姿态。' },
+  5001: { source: 'crossbar', message: '横移杆不到位', suggestion: '检查驱动和到位传感器。' },
+  5002: { source: 'crossbar', message: '横移杆传感器异常', suggestion: '检查相关 IO。' },
+  5003: { source: 'crossbar', message: '样品释放失败', suggestion: '检查针型气缸、D3 和储样筒。' },
+  6001: { source: 'rgb_light', message: '三色灯区域不存在', suggestion: 'area_id 范围为 1-29。' },
+  6002: { source: 'rgb_light', message: 'RGB 参数非法', suggestion: 'RGB 通道使用 0-255。' },
+  6003: { source: 'rgb_light', message: '三色灯输出失败', suggestion: '检查灯控模块和通信。' },
+  7001: { source: 'robot', message: '机械臂离线', suggestion: '检查机械臂供电和通信。' },
+  7002: { source: 'robot', message: '机械臂未使能', suggestion: '先执行使能。' },
+  7003: { source: 'robot', message: '机械臂未回零', suggestion: '先执行回零。' },
+  7004: { source: 'robot', message: '机械臂超软限位', suggestion: '检查目标位置和软限位。' },
+  7005: { source: 'robot', message: '机械臂报警', suggestion: '排除报警后复位。' },
+  7006: { source: 'robot', message: '机械臂运动失败', suggestion: '检查轴、速度、加速度和路径。' },
+  8001: { source: 'gripper', message: '电爪离线', suggestion: '检查电爪供电和通信。' },
+  8002: { source: 'gripper', message: '电爪打开失败', suggestion: '检查状态和开度限制。' },
+  8003: { source: 'gripper', message: '电爪关闭失败', suggestion: '检查样品姿态和夹持参数。' },
+  8004: { source: 'gripper', message: '电爪移动失败', suggestion: '检查目标开度和速度。' },
+  8005: { source: 'gripper', message: '夹取失败', suggestion: '检查电爪、姿态和夹持力度。' },
+  9001: { source: 'param', message: '不支持的参数', suggestion: '检查参数模块和字段。' },
+  9002: { source: 'param', message: '参数超出范围', suggestion: '检查速度、加速度、力度、曝光和增益。' },
+  9003: { source: 'param', message: '参数保存失败', suggestion: '检查设备存储状态。' },
+  9501: { source: 'system', message: '执行超时', suggestion: '查询设备状态后决定是否重试。' },
+  9502: { source: 'system', message: '设备内部异常', suggestion: '查看设备日志或联系维护人员。' },
+}
+
+export function getProtocolError(code: number): ProtocolErrorInfo | undefined {
+  return ERROR_MAP[code]
+}
