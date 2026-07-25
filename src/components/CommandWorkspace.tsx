@@ -8,6 +8,8 @@ import { CommandFields } from './CommandFields'
 import type { FormValues } from './FieldParts'
 import { ResponsePanel } from './ResponsePanel'
 
+const SAMPLE_MOVE_COMMANDS = new Set(['move_sample', 'move_sample_in_out'])
+
 interface Props {
   cmd: string
   connected: boolean
@@ -36,7 +38,7 @@ export function CommandWorkspace({ cmd, connected, busy, transaction, onSend }: 
 
   const switchMode = (next: 'form' | 'raw') => {
     if (next === 'raw' && mode === 'form') {
-      const params = cmd === 'move_sample' ? syncSampleNulls(form.getValues()) : form.getValues()
+      const params = SAMPLE_MOVE_COMMANDS.has(cmd) ? syncSampleNulls(form.getValues()) : form.getValues()
       setRaw(JSON.stringify(buildRequest(cmd, params, createRequestId()), null, 2))
     }
     setRawError('')
@@ -44,7 +46,7 @@ export function CommandWorkspace({ cmd, connected, busy, transaction, onSend }: 
   }
 
   const submitForm = form.handleSubmit(async (values) => {
-    const normalized = cmd === 'move_sample' ? syncSampleNulls(values) : values
+    const normalized = SAMPLE_MOVE_COMMANDS.has(cmd) ? syncSampleNulls(values) : values
     await onSend(buildRequest(cmd, normalized))
   })
 

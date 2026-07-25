@@ -1,6 +1,6 @@
 # NMR 自动化送样系统通信调试台
 
-基于 Electron、React、TypeScript 的 Windows 上位机 Demo。软件作为 TCP Client 连接设备 TCP Server，完整覆盖协议 V0.1 的 19 条命令。
+基于 Electron、React、TypeScript 的 Windows 上位机 Demo。软件作为 TCP Client 连接设备 TCP Server，完整覆盖协议 V0.1 的 25 条命令。
 
 ## 环境
 
@@ -30,7 +30,7 @@ npm run build
 - 发出 JSON 后统一追加 `\r\n`。
 - 接收按 `\n` 拆包，并兼容移除帧尾 `\r`。
 - 同一连接只允许一条在途请求。
-- 响应超时为 5 秒，不自动重试，不自动发送心跳。
+- 响应超时可在连接前配置，默认 5 秒；不自动重试，不自动发送心跳。
 - 响应必须同时匹配请求的 `cmd` 和 `request_id`。
 - 调试日志只保留当前会话，不写入本地文件。
 

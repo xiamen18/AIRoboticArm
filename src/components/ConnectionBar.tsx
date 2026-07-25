@@ -4,10 +4,12 @@ import type { ConnectionState, TransactionStatus } from '../shared/types'
 interface ConnectionBarProps {
   host: string
   port: string
+  timeoutSeconds: string
   state: ConnectionState
   pulse: TransactionStatus | 'idle'
   onHostChange(value: string): void
   onPortChange(value: string): void
+  onTimeoutChange(value: string): void
   onConnect(): void
   onDisconnect(): void
 }
@@ -17,7 +19,7 @@ const STATE_LABELS: Record<ConnectionState, string> = {
 }
 
 export function ConnectionBar(props: ConnectionBarProps) {
-  const { host, port, state, pulse, onHostChange, onPortChange, onConnect, onDisconnect } = props
+  const { host, port, timeoutSeconds, state, pulse, onHostChange, onPortChange, onTimeoutChange, onConnect, onDisconnect } = props
   const connected = state === 'connected'
   return (
     <header className="connection-shell">
@@ -36,7 +38,11 @@ export function ConnectionBar(props: ConnectionBarProps) {
         </label>
         <label className="port-field">
           <span>端口</span>
-          <input name="device-port" autoComplete="off" inputMode="numeric" type="number" value={port} disabled={state === 'connecting' || connected} onChange={(event) => onPortChange(event.target.value)} />
+          <input name="device-port" autoComplete="off" inputMode="numeric" type="number" min={1} max={65535} value={port} disabled={state === 'connecting' || connected} onChange={(event) => onPortChange(event.target.value)} />
+        </label>
+        <label className="timeout-field">
+          <span>响应超时 (s)</span>
+          <input name="response-timeout" autoComplete="off" inputMode="decimal" type="number" min={0.01} max={3600} step={0.1} value={timeoutSeconds} disabled={state === 'connecting' || connected} onChange={(event) => onTimeoutChange(event.target.value)} />
         </label>
         {connected ? (
           <button type="button" className="button disconnect-button" onClick={onDisconnect}><CableIcon size={16} />断开</button>

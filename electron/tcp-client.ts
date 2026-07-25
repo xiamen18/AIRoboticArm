@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 import net from 'node:net'
 import { randomUUID } from 'node:crypto'
+import { DEFAULT_RESPONSE_TIMEOUT_MS, MAX_RESPONSE_TIMEOUT_MS, MIN_RESPONSE_TIMEOUT_MS } from '../src/shared/types'
 import type {
   CommandRequest,
   CommandResponse,
@@ -21,7 +22,6 @@ interface PendingRequest {
 }
 
 export interface TcpClientOptions {
-  timeoutMs?: number
   socketFactory?: () => net.Socket
   now?: () => number
 }
@@ -31,13 +31,12 @@ export class NmrTcpClient extends EventEmitter {
   private state: ConnectionState = 'disconnected'
   private receiveBuffer = ''
   private pending: PendingRequest | null = null
-  private readonly timeoutMs: number
+  private timeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS
   private readonly socketFactory: () => net.Socket
   private readonly now: () => number
 
   constructor(options: TcpClientOptions = {}) {
     super()
-    this.timeoutMs = options.timeoutMs ?? 5_000
     this.socketFactory = options.socketFactory ?? (() => new net.Socket())
     this.now = options.now ?? Date.now
   }
@@ -50,6 +49,7 @@ export class NmrTcpClient extends EventEmitter {
     if (this.state === 'connecting') throw new Error('正在连接设备')
     if (this.state === 'connected') throw new Error('设备已经连接')
     this.validateConfig(config)
+    this.timeoutMs = config.timeoutMs
     this.cleanupSocket()
     this.setState('connecting')
 
@@ -66,7 +66,7 @@ export class NmrTcpClient extends EventEmitter {
       const onConnect = () => {
         socket.off('error', onInitialError)
         this.setState('connected')
-        this.emitSystem(`已连接 ${config.host}:${config.port}`)
+        this.emitSystem(`已连接 ${config.host}:${config.port}，响应超时 ${this.timeoutMs} ms`)
         resolve()
       }
       const onInitialError = (error: Error) => {
@@ -254,6 +254,9 @@ export class NmrTcpClient extends EventEmitter {
     if (!config.host.trim()) throw new Error('设备 IP/主机名不能为空')
     if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65_535) {
       throw new Error('端口必须是 1–65535 的整数')
+    }
+    if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < MIN_RESPONSE_TIMEOUT_MS || config.timeoutMs > MAX_RESPONSE_TIMEOUT_MS) {
+      throw new Error(`响应超时必须是 ${MIN_RESPONSE_TIMEOUT_MS}–${MAX_RESPONSE_TIMEOUT_MS} ms 的整数`)
     }
   }
 

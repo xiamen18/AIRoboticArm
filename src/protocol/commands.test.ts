@@ -1,20 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { buildRequest, COMMAND_MAP, COMMANDS, createRequestId, normalizeParams, parseRawRequest, syncSampleNulls } from './commands'
+import { buildRequest, COMMAND_MAP, COMMANDS, createRequestId, DEVICE_COMMANDS, GRIPPER_ACTIONS, GRIPPER_DEVICES, normalizeParams, parseRawRequest, syncSampleNulls, TRICOLOR_LIGHT_MODES } from './commands'
 
 describe('协议命令注册表', () => {
-  it('完整注册 19 条唯一命令', () => {
-    expect(COMMANDS).toHaveLength(19)
-    expect(new Set(COMMANDS.map((command) => command.cmd))).toHaveLength(19)
-    expect(COMMAND_MAP.size).toBe(19)
+  it('完整注册 25 条唯一命令', () => {
+    expect(COMMANDS).toHaveLength(25)
+    expect(new Set(COMMANDS.map((command) => command.cmd))).toHaveLength(25)
+    expect(COMMAND_MAP.size).toBe(25)
   })
 
-  it.each(COMMANDS.filter((item) => !['move_plate', 'move_sample'].includes(item.cmd)))('$cmd 默认参数可通过 schema', (definition) => {
+  it.each(COMMANDS.filter((item) => !['move_plate', 'move_sample', 'move_sample_in_out'].includes(item.cmd)))('$cmd 默认参数可通过 schema', (definition) => {
     expect(definition.schema.safeParse(definition.defaults).success).toBe(true)
   })
 
   it('搬运命令要求用户填写真实二维码后才能发送', () => {
     expect(COMMAND_MAP.get('move_plate')!.schema.safeParse(COMMAND_MAP.get('move_plate')!.defaults).success).toBe(false)
     expect(COMMAND_MAP.get('move_sample')!.schema.safeParse(COMMAND_MAP.get('move_sample')!.defaults).success).toBe(false)
+    expect(COMMAND_MAP.get('move_sample_in_out')!.schema.safeParse(COMMAND_MAP.get('move_sample_in_out')!.defaults).success).toBe(false)
+  })
+
+  it.each(DEVICE_COMMANDS)('接受整机命令 %s', (command) => {
+    expect(COMMAND_MAP.get('device_command')!.schema.safeParse({ command }).success).toBe(true)
+  })
+
+  it('拒绝协议已删除的整机中止命令', () => {
+    expect(COMMAND_MAP.get('device_command')!.schema.safeParse({ command: 'abort' }).success).toBe(false)
   })
 })
 
@@ -37,15 +46,92 @@ describe('条件参数与数组约束', () => {
     expect((valid.target as Record<string, unknown>).hole_id).toBe('NULL')
   })
 
-  it('拒绝重复灯光区域与重复机械轴', () => {
-    const rgb = COMMAND_MAP.get('set_rgb_light')!.schema.safeParse({ body: [
-      { area_id: 1, r: 0, g: 0, b: 0 }, { area_id: 1, r: 1, g: 1, b: 1 },
+  it('样品进退样校验两个任务并同步嵌套 test_area 的 NULL 字段', () => {
+    const definition = COMMAND_MAP.get('move_sample_in_out')!
+    const params = syncSampleNulls(definition.defaults)
+    const sampleIn = params.sample_in as Record<string, Record<string, unknown>>
+    const sampleOut = params.sample_out as Record<string, Record<string, unknown>>
+
+    sampleIn.source.plate_qr_code = 'PLATE-IN'
+    sampleIn.source.sample_qr_code = 'SAMPLE-IN'
+    sampleOut.source.sample_qr_code = 'SAMPLE-OUT'
+    sampleOut.target.plate_qr_code = 'PLATE-OUT'
+
+    expect(definition.schema.safeParse(params).success).toBe(true)
+    expect(sampleIn.target).toMatchObject({ area_type: 'test_area', plate_qr_code: 'NULL', hole_id: 'NULL' })
+    expect(sampleOut.source).toMatchObject({ area_type: 'test_area', plate_qr_code: 'NULL', hole_id: 'NULL' })
+
+    const invalidDirection = structuredClone(params)
+    ;(invalidDirection.sample_in as Record<string, Record<string, unknown>>).target = {
+      area_type: 'platform', area_id: 1, plate_qr_code: 'PLATE-TARGET', hole_id: 1,
+    }
+    expect(definition.schema.safeParse(invalidDirection).success).toBe(false)
+  })
+
+  it('拒绝重复灯光区域', () => {
+    const light = COMMAND_MAP.get('set_rgb_light')!.schema.safeParse({ body: [
+      { area_id: 1, mode: 'red' }, { area_id: 1, mode: 'green_flash' },
     ] })
-    const axes = COMMAND_MAP.get('robot_axis_move')!.schema.safeParse({ body: [
-      { axis: 'axis1', mode: 'absolute', target: 0 }, { axis: 'axis1', mode: 'relative', target: 1 },
-    ] })
-    expect(rgb.success).toBe(false)
-    expect(axes.success).toBe(false)
+    expect(light.success).toBe(false)
+  })
+
+  it.each(TRICOLOR_LIGHT_MODES)('接受三色灯模式 %s', (mode) => {
+    const result = COMMAND_MAP.get('set_rgb_light')!.schema.safeParse({ body: [{ area_id: 1, mode }] })
+    expect(result.success).toBe(true)
+  })
+
+  it('拒绝未定义的三色灯模式', () => {
+    const result = COMMAND_MAP.get('set_rgb_light')!.schema.safeParse({ body: [{ area_id: 1, mode: 'purple' }] })
+    expect(result.success).toBe(false)
+  })
+
+  it('四轴运动直接接受同一 params 下的 X/Y/Z/RZ 坐标', () => {
+    const schema = COMMAND_MAP.get('robot_axis_move')!.schema
+    expect(schema.safeParse({ mode: 'absolute', x: 10, y: 20, z: 150, rz: 0, speed: 50 }).success).toBe(true)
+    expect(schema.safeParse({ mode: 'relative', x: -1, y: 0, z: 2.5, rz: -5 }).success).toBe(true)
+  })
+
+  it('四轴运动拒绝旧 body、缺失坐标和已删除的加速度', () => {
+    const schema = COMMAND_MAP.get('robot_axis_move')!.schema
+    expect(schema.safeParse({ body: [{ axis: 'axis1', target: 10 }] }).success).toBe(false)
+    expect(schema.safeParse({ mode: 'absolute', x: 10, y: 20, z: 150 }).success).toBe(false)
+    expect(schema.safeParse({ mode: 'absolute', x: 10, y: 20, z: 150, rz: 0, acc: 100 }).success).toBe(false)
+  })
+
+  it('机械臂点控按区域类型限制区域编号', () => {
+    const schema = COMMAND_MAP.get('robot_point_control')!.schema
+    expect(schema.safeParse({ area_type: 'transfer', area_id: 4, point_type: 'photo' }).success).toBe(true)
+    expect(schema.safeParse({ area_type: 'transfer', area_id: 5, point_type: 'photo' }).success).toBe(false)
+    expect(schema.safeParse({ area_type: 'platform', area_id: 29, point_type: 'grab' }).success).toBe(true)
+    expect(schema.safeParse({ area_type: 'test_area', area_id: 3, point_type: 'grab' }).success).toBe(false)
+  })
+
+  it('点动速度可省略，填写时范围为 0-100', () => {
+    const schema = COMMAND_MAP.get('robot_jog_control')!.schema
+    expect(schema.safeParse({ axis: 'X', direction: 'positive' }).success).toBe(true)
+    expect(schema.safeParse({ axis: 'RZ', direction: 'stop', speed: '' }).success).toBe(true)
+    expect(schema.safeParse({ axis: 'Y', direction: 'negative', speed: 0 }).success).toBe(true)
+    expect(schema.safeParse({ axis: 'Z', direction: 'positive', speed: 100 }).success).toBe(true)
+    expect(schema.safeParse({ axis: 'X', direction: 'positive', speed: -0.1 }).success).toBe(false)
+    expect(schema.safeParse({ axis: 'X', direction: 'positive', speed: 100.1 }).success).toBe(false)
+  })
+
+  it.each(GRIPPER_DEVICES.flatMap((device) => GRIPPER_ACTIONS.map((action) => [device, action] as const)))('接受电爪设备 %s 的 %s 动作', (device, action) => {
+    expect(COMMAND_MAP.get('gripper_control')!.schema.safeParse({ device, action }).success).toBe(true)
+  })
+
+  it('电爪控制拒绝旧的目标位置和速度参数', () => {
+    const schema = COMMAND_MAP.get('gripper_control')!.schema
+    expect(schema.safeParse({ action: 'move_to', position: 25, speed: 50 }).success).toBe(false)
+    expect(schema.safeParse({ device: 'tube', action: 'close', position: 25 }).success).toBe(false)
+  })
+
+  it('安全雷达屏蔽要求近端和远端状态均为布尔值', () => {
+    const schema = COMMAND_MAP.get('set_safety_radar_mask')!.schema
+    expect(schema.safeParse({ near_alarm_masked: true, far_alarm_masked: false }).success).toBe(true)
+    expect(schema.safeParse({ near_alarm_masked: true }).success).toBe(false)
+    expect(schema.safeParse({ near_alarm_masked: 'true', far_alarm_masked: false }).success).toBe(false)
+    expect(schema.safeParse({ near_alarm_masked: true, far_alarm_masked: false, extra: true }).success).toBe(false)
   })
 })
 
@@ -70,6 +156,23 @@ describe('请求生成', () => {
     expect(params).toEqual({ robot: { speed: 50, save: false } })
   })
 
+  it('整机参数设置发送样品架和试管位置', () => {
+    const params = normalizeParams('set_machine_param', {
+      gripper: {
+        enabled: true,
+        speed: 50,
+        rack_force: 20,
+        tube_force: 30,
+        rack_position: 25,
+        tube_position: 10,
+        save: true,
+      },
+    })
+    expect(params).toEqual({
+      gripper: { speed: 50, rack_force: 20, tube_force: 30, rack_position: 25, tube_position: 10, save: true },
+    })
+  })
+
   it('原始模式允许未知命令但校验通用格式', () => {
     const request = parseRawRequest(JSON.stringify({ msg_type: 'command', cmd: 'future_cmd', request_id: 'CUSTOM-1', params: {} }))
     expect(request.cmd).toBe('future_cmd')
@@ -78,5 +181,66 @@ describe('请求生成', () => {
 
   it('构建标准命令报文', () => {
     expect(buildRequest('heartbeat', {}, 'REQ-1')).toEqual({ msg_type: 'command', cmd: 'heartbeat', request_id: 'REQ-1', params: {} })
+  })
+
+  it('样品进退样请求同时保留 sample_in 和 sample_out', () => {
+    const definition = COMMAND_MAP.get('move_sample_in_out')!
+    const params = syncSampleNulls(definition.defaults)
+    const sampleIn = params.sample_in as Record<string, Record<string, unknown>>
+    const sampleOut = params.sample_out as Record<string, Record<string, unknown>>
+    sampleIn.source.plate_qr_code = 'PLATE-IN'
+    sampleIn.source.sample_qr_code = 'SAMPLE-IN'
+    sampleOut.source.sample_qr_code = 'SAMPLE-OUT'
+    sampleOut.target.plate_qr_code = 'PLATE-OUT'
+
+    const request = buildRequest(definition.cmd, definition.schema.parse(params), 'REQ-SAMPLE-1')
+    expect(request.cmd).toBe('move_sample_in_out')
+    expect(request.params).toHaveProperty('sample_in')
+    expect(request.params).toHaveProperty('sample_out')
+  })
+
+  it('三色灯请求只包含区域和模式，不再生成 RGB 通道值', () => {
+    const definition = COMMAND_MAP.get('set_rgb_light')!
+    const params = definition.schema.parse(definition.defaults)
+    expect(buildRequest(definition.cmd, params, 'REQ-LIGHT-1')).toEqual({
+      msg_type: 'command',
+      cmd: 'set_rgb_light',
+      request_id: 'REQ-LIGHT-1',
+      params: { body: [{ area_id: 1, mode: 'green' }] },
+    })
+  })
+
+  it('四轴运动请求直接携带四个坐标，不包含 body 或 acc', () => {
+    const definition = COMMAND_MAP.get('robot_axis_move')!
+    const params = definition.schema.parse(definition.defaults)
+    const request = buildRequest(definition.cmd, params, 'REQ-ROBOT-1')
+
+    expect(request.params).toEqual({ mode: 'absolute', x: 10, y: 20, z: 150, rz: 0, speed: 50 })
+    expect(request.params).not.toHaveProperty('body')
+    expect(request.params).not.toHaveProperty('acc')
+  })
+
+  it('电爪控制请求只包含设备和开合动作', () => {
+    const definition = COMMAND_MAP.get('gripper_control')!
+    const params = definition.schema.parse({ device: 'tube', action: 'close' })
+
+    expect(buildRequest(definition.cmd, params, 'REQ-GRIPPER-1')).toEqual({
+      msg_type: 'command',
+      cmd: 'gripper_control',
+      request_id: 'REQ-GRIPPER-1',
+      params: { device: 'tube', action: 'close' },
+    })
+  })
+
+  it('安全雷达屏蔽请求同时发送近端和远端状态', () => {
+    const definition = COMMAND_MAP.get('set_safety_radar_mask')!
+    const params = definition.schema.parse({ near_alarm_masked: false, far_alarm_masked: true })
+
+    expect(buildRequest(definition.cmd, params, 'REQ-RADAR-1')).toEqual({
+      msg_type: 'command',
+      cmd: 'set_safety_radar_mask',
+      request_id: 'REQ-RADAR-1',
+      params: { near_alarm_masked: false, far_alarm_masked: true },
+    })
   })
 })

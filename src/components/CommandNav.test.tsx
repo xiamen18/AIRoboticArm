@@ -6,12 +6,33 @@ import { CommandNav } from './CommandNav'
 afterEach(cleanup)
 
 describe('CommandNav', () => {
-  it('展示 7 个模块和全部 19 条命令', () => {
+  it('展示 8 个模块和全部 25 条命令', () => {
     render(<CommandNav selected="heartbeat" onSelect={() => undefined} />)
-    expect(screen.getAllByRole('button')).toHaveLength(19)
+    expect(screen.getAllByRole('button')).toHaveLength(25)
+    expect(screen.getByText('25 CMD')).toBeInTheDocument()
     expect(screen.getByText('通用控制')).toBeInTheDocument()
     expect(screen.getByText('整机参数')).toBeInTheDocument()
     expect(screen.getByText('四轴运动')).toBeInTheDocument()
+    expect(screen.getByText('机械臂点控')).toBeInTheDocument()
+    expect(screen.getByText('点动控制')).toBeInTheDocument()
+    expect(screen.getByText('三色灯状态')).toBeInTheDocument()
+    expect(screen.getByText('顶针控制')).toBeInTheDocument()
+    expect(screen.getByText('样品搬运（单进样/单退样）')).toBeInTheDocument()
+    expect(screen.getByText('样品进退样')).toBeInTheDocument()
+    expect(screen.queryByText('样品释放')).not.toBeInTheDocument()
+    expect(screen.getByText('安全雷达')).toBeInTheDocument()
+    expect(screen.getByText('安全雷达状态')).toBeInTheDocument()
+    expect(screen.getByText('安全雷达屏蔽')).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      '通用控制',
+      '样品流程',
+      '横移杆',
+      '三色灯',
+      '机械臂',
+      '电爪',
+      '安全雷达',
+      '整机参数',
+    ])
   })
 
   it('点击命令时返回协议 cmd', () => {

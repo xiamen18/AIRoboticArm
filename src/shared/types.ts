@@ -1,8 +1,13 @@
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error'
 
+export const DEFAULT_RESPONSE_TIMEOUT_MS = 5_000
+export const MIN_RESPONSE_TIMEOUT_MS = 10
+export const MAX_RESPONSE_TIMEOUT_MS = 3_600_000
+
 export interface ConnectionConfig {
   host: string
   port: number
+  timeoutMs: number
 }
 
 export interface CommandRequest {

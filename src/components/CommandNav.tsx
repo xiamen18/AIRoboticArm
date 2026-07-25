@@ -11,7 +11,7 @@ export function CommandNav({ selected, onSelect }: CommandNavProps) {
     <aside className="command-nav panel">
       <div className="panel-heading">
         <div><span className="section-index">01</span><h2>命令矩阵</h2></div>
-        <span className="count-chip">19 CMD</span>
+        <span className="count-chip">{COMMANDS.length} CMD</span>
       </div>
       <div className="nav-search"><Search size={14} /><span>按设备模块分组</span></div>
       <nav aria-label="协议命令">

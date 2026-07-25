@@ -3,11 +3,13 @@ import { CommandNav } from './components/CommandNav'
 import { CommandWorkspace } from './components/CommandWorkspace'
 import { ConnectionBar } from './components/ConnectionBar'
 import { SessionLog } from './components/SessionLog'
+import { DEFAULT_RESPONSE_TIMEOUT_MS } from './shared/types'
 import type { CommandRequest, ConnectionState, SocketMessage, Transaction, TransactionStatus } from './shared/types'
 
 export function App() {
   const [host, setHost] = useState('127.0.0.1')
   const [port, setPort] = useState('5001')
+  const [timeoutSeconds, setTimeoutSeconds] = useState(String(DEFAULT_RESPONSE_TIMEOUT_MS / 1_000))
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [selectedCommand, setSelectedCommand] = useState('heartbeat')
   const [messages, setMessages] = useState<SocketMessage[]>([])
@@ -31,7 +33,11 @@ export function App() {
 
   const connect = async () => {
     try {
-      await window.nmrApi.connect({ host: host.trim(), port: Number(port) })
+      await window.nmrApi.connect({
+        host: host.trim(),
+        port: Number(port),
+        timeoutMs: Math.round(Number(timeoutSeconds) * 1_000),
+      })
       setPulse('idle')
     } catch (error) {
       setPulse('transport-error')
@@ -58,7 +64,7 @@ export function App() {
 
   return <div className="app-shell">
     <a className="skip-link" href="#command-workspace">跳到命令工作区</a>
-    <ConnectionBar host={host} port={port} state={connectionState} pulse={pulse} onHostChange={setHost} onPortChange={setPort} onConnect={connect} onDisconnect={disconnect} />
+    <ConnectionBar host={host} port={port} timeoutSeconds={timeoutSeconds} state={connectionState} pulse={pulse} onHostChange={setHost} onPortChange={setPort} onTimeoutChange={setTimeoutSeconds} onConnect={connect} onDisconnect={disconnect} />
     <div className="workbench-grid">
       <CommandNav selected={selectedCommand} onSelect={(cmd) => { setSelectedCommand(cmd); setTransaction(null) }} />
       <CommandWorkspace cmd={selectedCommand} connected={connectionState === 'connected'} busy={busy} transaction={transaction} onSend={send} />
