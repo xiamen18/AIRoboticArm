@@ -242,7 +242,7 @@ describe('请求生成', () => {
       crossbar: { action_timeout: 30, save: false },
       safety_radar: { near_alarm_masked: false, far_alarm_masked: false, save: false },
       move_plate: { plate_pick_height: 120, lift_height: 50, place_height: 110, save: false },
-      move_sample: { tube_pick_height: 80, lift_height: 40, place_height: 75, test_area_tube_pick_height: 95, test_area_tube_lift_height: 45, test_area_tube_place_height: 90, save: false },
+      move_sample: { test_area_x: 500, test_area_y: 250, tube_pick_height: 80, lift_height: 40, place_height: 75, test_area_tube_pick_height: 95, test_area_tube_lift_height: 45, test_area_tube_place_height: 90, save: false },
       move_sample_in_out: { position_3_wait_time: 3, save: false },
     })
   })

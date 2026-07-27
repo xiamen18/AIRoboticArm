@@ -140,6 +140,8 @@ describe('电爪命令与参数表单', () => {
     expect(screen.getByRole('spinbutton', { name: '样品盘夹取高度 (mm)' })).toHaveValue(120)
     const movePlate = screen.getByRole('group', { name: /move_plate · 样品盘搬运/ })
     expect(within(movePlate).getByRole('spinbutton', { name: '放置高度 (mm)' })).toHaveValue(110)
+    expect(screen.getByRole('spinbutton', { name: '磁体测试区 X 轴坐标 (mm)' })).toHaveValue(500)
+    expect(screen.getByRole('spinbutton', { name: '磁体测试区 Y 轴坐标 (mm)' })).toHaveValue(250)
     expect(screen.getByRole('spinbutton', { name: '试管夹取高度 (mm)' })).toHaveValue(80)
     const moveSample = screen.getByRole('group', { name: /move_sample · 样品搬运/ })
     expect(within(moveSample).getByRole('spinbutton', { name: '放置高度 (mm)' })).toHaveValue(75)

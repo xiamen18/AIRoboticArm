@@ -160,6 +160,8 @@ function MachineParamFields({ register, errors }: Props) {
       <SaveDefaultToggle name="move_plate" register={register} />
     </ModuleToggle>
     <ModuleToggle name="move_sample" label="move_sample · 样品搬运" register={register}>
+      <Field label="磁体测试区 X 轴坐标 (mm)" name="move_sample.test_area_x" register={register} type="number" step={0.01} />
+      <Field label="磁体测试区 Y 轴坐标 (mm)" name="move_sample.test_area_y" register={register} type="number" step={0.01} />
       <Field label="试管夹取高度 (mm)" name="move_sample.tube_pick_height" register={register} type="number" step={0.01} />
       <Field label="抬升高度 (mm)" name="move_sample.lift_height" register={register} type="number" step={0.01} />
       <Field label="放置高度 (mm)" name="move_sample.place_height" register={register} type="number" step={0.01} />
