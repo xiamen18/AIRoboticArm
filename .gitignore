@@ -1,6 +1,9 @@
 node_modules/
 dist/
 dist-electron/
+release/
+.codex-doc-review/
+自动进样器-CAN400DM.glb
 coverage/
 .vite/
 *.log

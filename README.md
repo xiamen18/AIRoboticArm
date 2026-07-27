@@ -25,6 +25,26 @@ npm test
 npm run build
 ```
 
+## 构建 Windows 绿色版
+
+打包电脑首次准备依赖：
+
+```powershell
+npm install
+```
+
+生成 Windows x64 单文件绿色版：
+
+```powershell
+npm run dist:portable
+```
+
+产物位于 `release` 目录，文件名类似
+`NMR自动送样通信调试台-0.1.0-win-x64-portable.exe`。将这个 `.exe` 直接拷贝到
+Windows 10/11 x64 电脑即可双击运行；目标电脑无需安装 Node.js，也无需执行
+`npm install`。首次启动时，Windows SmartScreen 可能提示“未知发布者”，选择
+“更多信息”后再选择“仍要运行”。
+
 ## 通信行为
 
 - 发出 JSON 后统一追加 `\r\n`。
