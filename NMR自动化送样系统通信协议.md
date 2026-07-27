@@ -1713,11 +1713,14 @@
 | move_plate | object | 否 | !!!#ffcc99 样品盘搬运参数；查询该模块时返回。!!! |
 | move_plate.plate_pick_height | number | 是 | !!!#ffcc99 样品盘夹取高度，单位：毫米（mm）。!!! |
 | move_plate.lift_height | number | 是 | !!!#ffcc99 样品盘夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_plate.place_height | number | 是 | !!!#ffcc99 样品盘放置高度，单位：毫米（mm）。!!! |
 | move_sample | object | 否 | !!!#ffcc99 样品搬运参数；查询该模块时返回。!!! |
 | move_sample.tube_pick_height | number | 是 | !!!#ffcc99 试管夹取高度，单位：毫米（mm）。!!! |
 | move_sample.lift_height | number | 是 | !!!#ffcc99 试管夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_sample.place_height | number | 是 | !!!#ffcc99 试管放置高度，单位：毫米（mm）。!!! |
 | move_sample.test_area_tube_pick_height | number | 是 | !!!#ffcc99 磁体测试区试管夹取高度，单位：毫米（mm）。!!! |
 | move_sample.test_area_tube_lift_height | number | 是 | !!!#ffcc99 磁体测试区试管抬升高度，单位：毫米（mm）。!!! |
+| move_sample.test_area_tube_place_height | number | 是 | !!!#ffcc99 磁体测试区试管放置高度，单位：毫米（mm）。!!! |
 | move_sample_in_out | object | 否 | !!!#ffcc99 样品进退样参数；查询该模块时返回。!!! |
 | move_sample_in_out.position_3_wait_time | number | 是 | !!!#ffcc99 横移杆到达位置 3 后的等待时间，单位：秒（s）。!!! |
 
@@ -1734,7 +1737,7 @@
 
 ### 响应示例
 
-!!!#ffcc99 参数查询响应删除 `robot.acc` 和 `crossbar.speed`，并增加电爪松开位置、横移杆动作超时、安全雷达及三类样品搬运参数。!!!
+!!!#ffcc99 参数查询响应删除 `robot.acc` 和 `crossbar.speed`，并增加电爪松开位置、横移杆动作超时、安全雷达及三类样品搬运参数；样品盘搬运增加放置高度，样品搬运增加试管放置高度和磁体测试区试管放置高度。!!!
 
 ```json
 {
@@ -1768,13 +1771,16 @@
     },
     "move_plate": {
       "plate_pick_height": 120,
-      "lift_height": 50
+      "lift_height": 50,
+      "place_height": 110
     },
     "move_sample": {
       "tube_pick_height": 80,
       "lift_height": 40,
+      "place_height": 75,
       "test_area_tube_pick_height": 95,
-      "test_area_tube_lift_height": 45
+      "test_area_tube_lift_height": 45,
+      "test_area_tube_place_height": 90
     },
     "move_sample_in_out": {
       "position_3_wait_time": 3
@@ -1787,7 +1793,7 @@
 
 按模块设置整机参数。未包含的模块不修改；每个模块内未包含的字段不修改。
 
-!!!#ffcc99 机械臂删除加速度参数；电爪增加松开位置；横移杆删除速度并增加动作超时时间；新增安全雷达、样品盘搬运、样品搬运和样品进退样参数。!!!
+!!!#ffcc99 机械臂删除加速度参数；电爪增加松开位置；横移杆删除速度并增加动作超时时间；新增安全雷达、样品盘搬运、样品搬运和样品进退样参数；样品盘搬运增加放置高度，样品搬运增加试管放置高度和磁体测试区试管放置高度。!!!
 
 | 命令 | 说明 |
 | --- | --- |
@@ -1822,12 +1828,15 @@
 | move_plate | object | 否 | !!!#ffcc99 样品盘搬运参数。!!! |
 | move_plate.plate_pick_height | number | 否 | !!!#ffcc99 样品盘夹取高度，单位：毫米（mm）。!!! |
 | move_plate.lift_height | number | 否 | !!!#ffcc99 样品盘夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_plate.place_height | number | 否 | !!!#ffcc99 样品盘放置高度，单位：毫米（mm）。!!! |
 | move_plate.save | boolean | 否 | !!!#ffcc99 是否保存为默认参数。!!! |
 | move_sample | object | 否 | !!!#ffcc99 样品搬运参数。!!! |
 | move_sample.tube_pick_height | number | 否 | !!!#ffcc99 试管夹取高度，单位：毫米（mm）。!!! |
 | move_sample.lift_height | number | 否 | !!!#ffcc99 试管夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_sample.place_height | number | 否 | !!!#ffcc99 试管放置高度，单位：毫米（mm）。!!! |
 | move_sample.test_area_tube_pick_height | number | 否 | !!!#ffcc99 磁体测试区试管夹取高度，单位：毫米（mm）。!!! |
 | move_sample.test_area_tube_lift_height | number | 否 | !!!#ffcc99 磁体测试区试管抬升高度，单位：毫米（mm）。!!! |
+| move_sample.test_area_tube_place_height | number | 否 | !!!#ffcc99 磁体测试区试管放置高度，单位：毫米（mm）。!!! |
 | move_sample.save | boolean | 否 | !!!#ffcc99 是否保存为默认参数。!!! |
 | move_sample_in_out | object | 否 | !!!#ffcc99 样品进退样参数。!!! |
 | move_sample_in_out.position_3_wait_time | number | 否 | !!!#ffcc99 横移杆到达位置 3 后的等待时间，单位：秒（s）。!!! |
@@ -1902,13 +1911,16 @@
     "move_plate": {
       "plate_pick_height": 120,
       "lift_height": 50,
+      "place_height": 110,
       "save": true
     },
     "move_sample": {
       "tube_pick_height": 80,
       "lift_height": 40,
+      "place_height": 75,
       "test_area_tube_pick_height": 95,
       "test_area_tube_lift_height": 45,
+      "test_area_tube_place_height": 90,
       "save": true
     },
     "move_sample_in_out": {

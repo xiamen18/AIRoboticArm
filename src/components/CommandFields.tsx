@@ -156,13 +156,16 @@ function MachineParamFields({ register, errors }: Props) {
     <ModuleToggle name="move_plate" label="move_plate · 样品盘搬运" register={register}>
       <Field label="样品盘夹取高度 (mm)" name="move_plate.plate_pick_height" register={register} type="number" step={0.01} />
       <Field label="抬升高度 (mm)" name="move_plate.lift_height" register={register} type="number" step={0.01} />
+      <Field label="放置高度 (mm)" name="move_plate.place_height" register={register} type="number" step={0.01} />
       <SaveDefaultToggle name="move_plate" register={register} />
     </ModuleToggle>
     <ModuleToggle name="move_sample" label="move_sample · 样品搬运" register={register}>
       <Field label="试管夹取高度 (mm)" name="move_sample.tube_pick_height" register={register} type="number" step={0.01} />
       <Field label="抬升高度 (mm)" name="move_sample.lift_height" register={register} type="number" step={0.01} />
+      <Field label="放置高度 (mm)" name="move_sample.place_height" register={register} type="number" step={0.01} />
       <Field label="磁体测试区试管夹取高度 (mm)" name="move_sample.test_area_tube_pick_height" register={register} type="number" step={0.01} />
       <Field label="磁体测试区试管抬升高度 (mm)" name="move_sample.test_area_tube_lift_height" register={register} type="number" step={0.01} />
+      <Field label="磁体测试区试管放置高度 (mm)" name="move_sample.test_area_tube_place_height" register={register} type="number" step={0.01} />
       <SaveDefaultToggle name="move_sample" register={register} />
     </ModuleToggle>
     <ModuleToggle name="move_sample_in_out" label="move_sample_in_out · 样品进退样" register={register}>

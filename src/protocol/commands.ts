@@ -179,8 +179,8 @@ export const COMMANDS: CommandDefinition[] = [
       camera: z.object({ enabled: z.boolean(), exposure: optionalNumber, gain: optionalNumber, save: z.boolean() }).strict(),
       crossbar: z.object({ enabled: z.boolean(), action_timeout: optionalNumber, save: z.boolean() }).strict(),
       safety_radar: z.object({ enabled: z.boolean(), near_alarm_masked: z.boolean(), far_alarm_masked: z.boolean(), save: z.boolean() }).strict(),
-      move_plate: z.object({ enabled: z.boolean(), plate_pick_height: optionalNumber, lift_height: optionalNumber, save: z.boolean() }).strict(),
-      move_sample: z.object({ enabled: z.boolean(), tube_pick_height: optionalNumber, lift_height: optionalNumber, test_area_tube_pick_height: optionalNumber, test_area_tube_lift_height: optionalNumber, save: z.boolean() }).strict(),
+      move_plate: z.object({ enabled: z.boolean(), plate_pick_height: optionalNumber, lift_height: optionalNumber, place_height: optionalNumber, save: z.boolean() }).strict(),
+      move_sample: z.object({ enabled: z.boolean(), tube_pick_height: optionalNumber, lift_height: optionalNumber, place_height: optionalNumber, test_area_tube_pick_height: optionalNumber, test_area_tube_lift_height: optionalNumber, test_area_tube_place_height: optionalNumber, save: z.boolean() }).strict(),
       move_sample_in_out: z.object({ enabled: z.boolean(), position_3_wait_time: optionalNumber, save: z.boolean() }).strict(),
     }).superRefine((value, context) => {
       if (!MACHINE_PARAM_MODULES.some((module) => value[module].enabled)) {
@@ -193,8 +193,8 @@ export const COMMANDS: CommandDefinition[] = [
       camera: { enabled: false, exposure: 20, gain: 1.5, save: false },
       crossbar: { enabled: false, action_timeout: 30, save: false },
       safety_radar: { enabled: false, near_alarm_masked: false, far_alarm_masked: false, save: false },
-      move_plate: { enabled: false, plate_pick_height: 120, lift_height: 50, save: false },
-      move_sample: { enabled: false, tube_pick_height: 80, lift_height: 40, test_area_tube_pick_height: 95, test_area_tube_lift_height: 45, save: false },
+      move_plate: { enabled: false, plate_pick_height: 120, lift_height: 50, place_height: 110, save: false },
+      move_sample: { enabled: false, tube_pick_height: 80, lift_height: 40, place_height: 75, test_area_tube_pick_height: 95, test_area_tube_lift_height: 45, test_area_tube_place_height: 90, save: false },
       move_sample_in_out: { enabled: false, position_3_wait_time: 3, save: false },
     },
   },
