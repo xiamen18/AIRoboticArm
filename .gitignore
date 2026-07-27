@@ -3,6 +3,7 @@ dist/
 dist-electron/
 release/
 .codex-doc-review/
+docs/flows/.preview/
 自动进样器-CAN400DM.glb
 coverage/
 .vite/

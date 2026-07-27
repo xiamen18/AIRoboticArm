@@ -636,6 +636,10 @@
 
 将样品盘从源区域搬运到目的区域。该协议用于中转区、测试平台区域之间的样品盘搬运场景，设备根据源区域、目的区域和源样品盘二维码执行动作。
 
+### 流程图
+
+![样品盘搬运流程](docs/flows/move-plate-flow.svg)
+
 | 命令 | 说明 |
 | --- | --- |
 | move_plate | 根据源区域和目的区域搬运样品盘/样品台。 |
@@ -699,6 +703,16 @@
 ## 5.4 样品搬运（单进样/单退样）
 
 !!!#ffcc99 将单只样品从源区域搬运到目的区域。当 `target.area_type` 为 `test_area` 时表示单进样；当 `source.area_type` 为 `test_area` 时表示单退样。!!!
+
+### 流程图
+
+#### 单进样流程
+
+![单进样流程](docs/flows/single-sample-in-flow.svg)
+
+#### 单退样流程
+
+![单退样流程](docs/flows/single-sample-out-flow.svg)
 
 | 命令 | 说明 |
 | --- | --- |
@@ -798,6 +812,12 @@
 ## 5.5 样品进退样
 
 !!!#ffcc99 在同一条命令中同时指定进样和退样任务。`params` 包含 `sample_in`（进样）和 `sample_out`（退样）两个必填对象；两个对象内部均使用与 5.4 样品搬运相同的 `source`、`target` 字段结构。!!!
+
+### 流程图
+
+![样品进退样换样流程](docs/flows/sample-exchange-flow.svg)
+
+流程图源文件：[AI机械臂流程.drawio](docs/flows/AI机械臂流程.drawio)。
 
 | 命令 | 说明 |
 | --- | --- |
