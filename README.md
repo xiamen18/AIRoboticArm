@@ -1,6 +1,6 @@
 # NMR 自动化送样系统通信调试台
 
-基于 Electron、React、TypeScript 的 Windows 上位机 Demo。软件作为 TCP Client 连接设备 TCP Server，完整覆盖协议 V0.1 的 25 条命令。
+基于 Electron、React、TypeScript 的 Windows 上位机 Demo。软件作为 TCP Client 连接设备 TCP Server，完整覆盖协议 V0.1 的 24 条命令。
 
 ## 环境
 

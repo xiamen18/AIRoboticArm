@@ -22,7 +22,10 @@ describe('协议错误码映射', () => {
     })
   })
 
-  it('整机参数范围提示包含位置', () => {
-    expect(getProtocolError(9002)?.suggestion).toContain('位置')
+  it('整机参数范围提示覆盖高度和时间参数', () => {
+    expect(getProtocolError(9002)?.suggestion).toContain('高度')
+    expect(getProtocolError(9002)?.suggestion).toContain('超时时间')
+    expect(getProtocolError(9002)?.suggestion).toContain('等待时间')
+    expect(getProtocolError(9002)?.suggestion).not.toContain('加速度')
   })
 })

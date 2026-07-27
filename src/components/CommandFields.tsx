@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useFieldArray, useWatch, type FieldErrors, type UseFormRegister, type UseFormSetValue, type Control } from 'react-hook-form'
-import { DEVICE_COMMANDS, GRIPPER_ACTIONS, GRIPPER_DEVICES, TRICOLOR_LIGHT_MODES } from '../protocol/commands'
+import { DEVICE_COMMANDS, GRIPPER_ACTIONS, GRIPPER_DEVICES, MACHINE_PARAM_MODULES, TRICOLOR_LIGHT_MODES } from '../protocol/commands'
 import { AREA_OPTIONS, Field, PLATE_AREA_OPTIONS, SelectField, type FormValues } from './FieldParts'
 
 interface Props {
@@ -45,6 +45,16 @@ const GRIPPER_ACTION_OPTIONS = [
   { value: GRIPPER_ACTIONS[1], label: `${GRIPPER_ACTIONS[1]} · 合` },
 ]
 const TEST_AREA_OPTIONS = AREA_OPTIONS.slice(2)
+const MACHINE_PARAM_MODULE_LABELS: Record<(typeof MACHINE_PARAM_MODULES)[number], string> = {
+  robot: '机械臂',
+  gripper: '电爪',
+  camera: '摄像头',
+  crossbar: '横移杆',
+  safety_radar: '安全雷达',
+  move_plate: '样品盘搬运',
+  move_sample: '样品搬运',
+  move_sample_in_out: '样品进退样',
+}
 
 function AreaFields({ prefix, legend, plateOnly, areaOptions, register, control, errors, includeQr = false, includeHole = false, includeSampleQr = false }: any) {
   const areaType = useWatch({ control, name: `${prefix}.area_type` })
@@ -110,6 +120,59 @@ function ModuleToggle({ name, label, register, children }: any) {
   return <fieldset className="module-box"><legend><label className="check-label"><input type="checkbox" {...register(`${name}.enabled`)} />{label}</label></legend><div className="form-grid cols-2">{children}</div></fieldset>
 }
 
+function SaveDefaultToggle({ name, register }: { name: string; register: UseFormRegister<FormValues> }) {
+  return <label className="check-label"><input type="checkbox" {...register(`${name}.save`)} />保存默认值</label>
+}
+
+function MachineParamFields({ register, errors }: Props) {
+  return <div className="module-grid">
+    <ModuleToggle name="robot" label="robot · 机械臂" register={register}>
+      <Field label="速度" name="robot.speed" register={register} type="number" />
+      <SaveDefaultToggle name="robot" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="gripper" label="gripper · 电爪" register={register}>
+      <Field label="速度" name="gripper.speed" register={register} type="number" />
+      <Field label="样品架力度" name="gripper.rack_force" register={register} type="number" />
+      <Field label="试管力度" name="gripper.tube_force" register={register} type="number" />
+      <Field label="样品架位置" name="gripper.rack_position" register={register} type="number" />
+      <Field label="试管位置" name="gripper.tube_position" register={register} type="number" />
+      <Field label="松开位置" name="gripper.release_position" register={register} type="number" />
+      <SaveDefaultToggle name="gripper" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="camera" label="camera · 摄像头" register={register}>
+      <Field label="曝光" name="camera.exposure" register={register} type="number" />
+      <Field label="增益" name="camera.gain" register={register} type="number" step={0.1} />
+      <SaveDefaultToggle name="camera" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="crossbar" label="crossbar · 横移杆" register={register}>
+      <Field label="动作超时时间 (s)" name="crossbar.action_timeout" register={register} type="number" min={0} step={0.1} />
+      <SaveDefaultToggle name="crossbar" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="safety_radar" label="safety_radar · 安全雷达" register={register}>
+      <label className="check-label"><input type="checkbox" {...register('safety_radar.near_alarm_masked')} />近端告警屏蔽</label>
+      <label className="check-label"><input type="checkbox" {...register('safety_radar.far_alarm_masked')} />远端告警屏蔽</label>
+      <SaveDefaultToggle name="safety_radar" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="move_plate" label="move_plate · 样品盘搬运" register={register}>
+      <Field label="样品盘夹取高度 (mm)" name="move_plate.plate_pick_height" register={register} type="number" step={0.01} />
+      <Field label="抬升高度 (mm)" name="move_plate.lift_height" register={register} type="number" step={0.01} />
+      <SaveDefaultToggle name="move_plate" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="move_sample" label="move_sample · 样品搬运" register={register}>
+      <Field label="试管夹取高度 (mm)" name="move_sample.tube_pick_height" register={register} type="number" step={0.01} />
+      <Field label="抬升高度 (mm)" name="move_sample.lift_height" register={register} type="number" step={0.01} />
+      <Field label="磁体测试区试管夹取高度 (mm)" name="move_sample.test_area_tube_pick_height" register={register} type="number" step={0.01} />
+      <Field label="磁体测试区试管抬升高度 (mm)" name="move_sample.test_area_tube_lift_height" register={register} type="number" step={0.01} />
+      <SaveDefaultToggle name="move_sample" register={register} />
+    </ModuleToggle>
+    <ModuleToggle name="move_sample_in_out" label="move_sample_in_out · 样品进退样" register={register}>
+      <Field label="位置 3 等待时间 (s)" name="move_sample_in_out.position_3_wait_time" register={register} type="number" min={0} step={0.1} />
+      <SaveDefaultToggle name="move_sample_in_out" register={register} />
+    </ModuleToggle>
+    {errors.root?.message ? <p className="form-error">{errors.root.message}</p> : null}
+  </div>
+}
+
 export function CommandFields(props: Props) {
   const { cmd, register, control, errors } = props
   if (['heartbeat', 'get_crossbar_status', 'get_rgb_light_status', 'get_robot_status', 'get_gripper_status', 'get_safety_radar_status'].includes(cmd)) return <div className="empty-params"><code>{'{}'}</code><p>此命令不需要参数，可直接发送。</p></div>
@@ -140,17 +203,7 @@ export function CommandFields(props: Props) {
     <Field label="速度 (%)" name="speed" register={register} type="number" min={0} max={100} step={0.1} error={errorAt(errors, 'speed')} />
   </div>
   if (cmd === 'gripper_control') return <div className="form-grid cols-2"><SelectField label="设备" name="device" register={register} options={GRIPPER_DEVICE_OPTIONS} error={errorAt(errors, 'device')} /><SelectField label="动作" name="action" register={register} options={GRIPPER_ACTION_OPTIONS} error={errorAt(errors, 'action')} /></div>
-  if (cmd === 'set_safety_radar_mask') return <div className="form-grid cols-2">
-    <label className="switch-field"><input type="checkbox" {...register('near_alarm_masked')} /><span className="switch" /><span><strong>近端告警屏蔽</strong><small>true：屏蔽；false：不屏蔽</small></span></label>
-    <label className="switch-field"><input type="checkbox" {...register('far_alarm_masked')} /><span className="switch" /><span><strong>远端告警屏蔽</strong><small>true：屏蔽；false：不屏蔽</small></span></label>
-  </div>
-  if (cmd === 'get_machine_param') return <fieldset className="module-query"><legend>查询模块（不选表示全部）</legend>{['robot', 'gripper', 'camera', 'crossbar'].map((module) => <label className="check-label" key={module}><input type="checkbox" value={module} {...register('modules')} />{module}</label>)}</fieldset>
-  if (cmd === 'set_machine_param') return <div className="module-grid">
-    <ModuleToggle name="robot" label="robot · 机械臂" register={register}><Field label="速度" name="robot.speed" register={register} type="number" /><Field label="加速度" name="robot.acc" register={register} type="number" /><label className="check-label"><input type="checkbox" {...register('robot.save')} />保存默认值</label></ModuleToggle>
-    <ModuleToggle name="gripper" label="gripper · 电爪" register={register}><Field label="速度" name="gripper.speed" register={register} type="number" /><Field label="样品架力度" name="gripper.rack_force" register={register} type="number" /><Field label="试管力度" name="gripper.tube_force" register={register} type="number" /><Field label="样品架位置" name="gripper.rack_position" register={register} type="number" /><Field label="试管位置" name="gripper.tube_position" register={register} type="number" /><label className="check-label"><input type="checkbox" {...register('gripper.save')} />保存默认值</label></ModuleToggle>
-    <ModuleToggle name="camera" label="camera · 摄像头" register={register}><Field label="曝光" name="camera.exposure" register={register} type="number" /><Field label="增益" name="camera.gain" register={register} type="number" step={0.1} /><label className="check-label"><input type="checkbox" {...register('camera.save')} />保存默认值</label></ModuleToggle>
-    <ModuleToggle name="crossbar" label="crossbar · 横移杆" register={register}><Field label="速度" name="crossbar.speed" register={register} type="number" /><label className="check-label"><input type="checkbox" {...register('crossbar.save')} />保存默认值</label></ModuleToggle>
-    {errors.root?.message ? <p className="form-error">{errors.root.message}</p> : null}
-  </div>
+  if (cmd === 'get_machine_param') return <fieldset className="module-query"><legend>查询模块（不选表示全部）</legend>{MACHINE_PARAM_MODULES.map((module) => <label className="check-label" key={module}><input type="checkbox" value={module} {...register('modules')} />{module} · {MACHINE_PARAM_MODULE_LABELS[module]}</label>)}</fieldset>
+  if (cmd === 'set_machine_param') return <MachineParamFields {...props} />
   return null
 }

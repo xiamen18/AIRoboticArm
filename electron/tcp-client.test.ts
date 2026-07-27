@@ -224,19 +224,19 @@ describe('NmrTcpClient', () => {
     expect(result.transaction.response?.data).toEqual(radarData)
   })
 
-  it('安全雷达屏蔽控制保留统一动作响应', async () => {
+  it('安全雷达屏蔽参数通过整机参数设置并保留统一动作响应', async () => {
     const radarRequest: CommandRequest = {
       msg_type: 'command',
-      cmd: 'set_safety_radar_mask',
-      request_id: 'REQ-RADAR-MASK-1',
-      params: { near_alarm_masked: false, far_alarm_masked: true },
+      cmd: 'set_machine_param',
+      request_id: 'REQ-RADAR-PARAM-1',
+      params: { safety_radar: { near_alarm_masked: false, far_alarm_masked: true, save: false } },
     }
-    const actionData = { action_status: 'success', failed_reason: 'NULL' }
+    const actionData = { safety_radar: { action_status: 'success', failed_reason: 'NULL' } }
     const port = await listen((socket) => socket.on('data', () => socket.write(
       `${JSON.stringify({
         msg_type: 'response',
-        cmd: 'set_safety_radar_mask',
-        request_id: 'REQ-RADAR-MASK-1',
+        cmd: 'set_machine_param',
+        request_id: 'REQ-RADAR-PARAM-1',
         code: 0,
         message: 'OK',
         data: actionData,

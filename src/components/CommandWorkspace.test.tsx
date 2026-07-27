@@ -66,4 +66,20 @@ describe('命令表单数值类型', () => {
     fireEvent.change(screen.getByRole('spinbutton', { name: '区域' }), { target: { value: '9' } })
     expect(readRawParams().body[0].area_id).toBe(9)
   })
+
+  it('安全雷达屏蔽状态通过整机参数设置生成报文', () => {
+    renderWorkspace('set_machine_param')
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'robot · 机械臂' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'safety_radar · 安全雷达' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '近端告警屏蔽' }))
+
+    expect(readRawParams()).toEqual({
+      safety_radar: {
+        near_alarm_masked: true,
+        far_alarm_masked: false,
+        save: false,
+      },
+    })
+  })
 })

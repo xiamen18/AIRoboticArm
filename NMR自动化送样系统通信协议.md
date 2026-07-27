@@ -91,7 +91,6 @@
 | get_gripper_status       | 电爪信息查询   | !!!#ffcc99 读取电爪运行状态、动作状态、故障状态、当前位置和当前力矩。!!!                                  |
 | gripper_control          | 电爪控制     | !!!#ffcc99 按设备类型控制电爪打开或闭合。!!!                                                     |
 | get_safety_radar_status  | 安全雷达状态查询 | !!!#ffcc99 查询近端、远端触发状态以及近端、远端告警屏蔽状态。!!!                                  |
-| set_safety_radar_mask    | 安全雷达屏蔽控制 | !!!#ffcc99 设置近端和远端告警是否屏蔽。!!!                                                   |
 | get_machine_param        | 整机参数查询   | 按模块查询整机参数。                                                                   |
 | set_machine_param        | 整机参数设置   | 按模块设置整机参数。                                                                   |
 
@@ -1609,7 +1608,7 @@
 
 # 10. 安全雷达控制协议
 
-!!!#ffcc99 本章新增安全雷达状态查询和告警屏蔽控制协议。!!!
+!!!#ffcc99 本章仅保留安全雷达状态查询；近端和远端告警屏蔽状态统一通过第 11 章整机参数协议查询和设置。!!!
 
 ## 10.1 安全雷达状态查询
 
@@ -1665,69 +1664,13 @@
 }
 ```
 
-## 10.2 安全雷达屏蔽控制
-
-!!!#ffcc99 设置安全雷达近端和远端告警是否屏蔽。近端和远端屏蔽状态在同一次请求中同时设置。!!!
-
-| 命令 | 说明 |
-| --- | --- |
-| set_safety_radar_mask | !!!#ffcc99 设置安全雷达近端和远端告警屏蔽状态。!!! |
-
-### 请求 params 字段
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| near_alarm_masked | boolean | 是 | !!!#ffcc99 设置近端告警是否屏蔽：true/false（屏蔽/不屏蔽）。!!! |
-| far_alarm_masked | boolean | 是 | !!!#ffcc99 设置远端告警是否屏蔽：true/false（屏蔽/不屏蔽）。!!! |
-
-### 响应 data 字段
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| action_status | string | 是 | !!!#ffcc99 执行结果：success/failed（成功/失败）。!!! |
-| failed_reason | string | 是 | !!!#ffcc99 失败原因；成功时为 "NULL"。!!! |
-
-### 请求示例
-
-!!!#ffcc99 以下为新增安全雷达屏蔽控制请求示例。!!!
-
-```json
-{
-  "msg_type": "command",
-  "cmd": "set_safety_radar_mask",
-  "request_id": "REQ202606030007",
-  "params": {
-    "near_alarm_masked": false,
-    "far_alarm_masked": true
-  }
-}
-```
-
-### 响应示例
-
-!!!#ffcc99 以下为新增安全雷达屏蔽控制响应示例。!!!
-
-```json
-{
-  "msg_type": "response",
-  "cmd": "set_safety_radar_mask",
-  "request_id": "REQ202606030007",
-  "code": 0,
-  "message": "OK",
-  "data": {
-    "action_status": "success",
-    "failed_reason": "NULL"
-  }
-}
-```
-
 # 11. 整机参数协议
 
-整机参数按模块分组，模块包括 `robot`（机械臂）、`gripper`（电爪）、`camera`（摄像头）、`crossbar`（横移杆）。
+!!!#ffcc99 整机参数按模块分组，模块包括 `robot`（机械臂）、`gripper`（电爪）、`camera`（摄像头）、`crossbar`（横移杆）、`safety_radar`（安全雷达）、`move_plate`（样品盘搬运）、`move_sample`（样品搬运）和 `move_sample_in_out`（样品进退样）。!!!
 
 ## 11.1 整机参数查询
 
-查询整机各模块当前参数。`params` 为空对象 `{}` 时查询全部模块；需要指定模块时，按模块传 `{}`。
+查询整机各模块当前参数。`params` 为空对象 `{}` 时查询全部模块；需要指定模块时，按模块传 `{}`。响应 `data` 只返回本次查询的模块。
 
 | 命令 | 说明 |
 | --- | --- |
@@ -1741,25 +1684,42 @@
 | gripper | object | 否 | 电爪参数查询项；传 `{}` 表示查询该模块。 |
 | camera | object | 否 | 摄像头参数查询项；传 `{}` 表示查询该模块。 |
 | crossbar | object | 否 | 横移杆参数查询项；传 `{}` 表示查询该模块。 |
+| safety_radar | object | 否 | !!!#ffcc99 安全雷达参数查询项；传 `{}` 表示查询该模块。!!! |
+| move_plate | object | 否 | !!!#ffcc99 样品盘搬运参数查询项；传 `{}` 表示查询该模块。!!! |
+| move_sample | object | 否 | !!!#ffcc99 样品搬运参数查询项；传 `{}` 表示查询该模块。!!! |
+| move_sample_in_out | object | 否 | !!!#ffcc99 样品进退样参数查询项；传 `{}` 表示查询该模块。!!! |
 
 ### 响应 data 字段
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| robot | object | 是 | 机械臂参数。 |
+| robot | object | 否 | 机械臂参数；查询该模块时返回。 |
 | robot.speed | number | 是 | 默认速度。 |
-| robot.acc | number | 是 | 默认加速度。 |
-| gripper | object | 是 | 电爪参数。 |
+| gripper | object | 否 | 电爪参数；查询该模块时返回。 |
 | gripper.speed | number | 是 | 默认速度。 |
 | gripper.rack_force | number | 是 | 样品架力度。 |
 | gripper.tube_force | number | 是 | 试管力度。 |
 | gripper.rack_position | number | 是 | !!!#ffcc99 样品架位置。!!! |
 | gripper.tube_position | number | 是 | !!!#ffcc99 试管位置。!!! |
-| camera | object | 是 | 摄像头参数。 |
+| gripper.release_position | number | 是 | !!!#ffcc99 松开位置。!!! |
+| camera | object | 否 | 摄像头参数；查询该模块时返回。 |
 | camera.exposure | number | 是 | 曝光参数。 |
 | camera.gain | number | 是 | 增益参数。 |
-| crossbar | object | 是 | 横移杆参数。 |
-| crossbar.speed | number | 是 | 默认速度。 |
+| crossbar | object | 否 | 横移杆参数；查询该模块时返回。 |
+| crossbar.action_timeout | number | 是 | !!!#ffcc99 动作超时时间，单位：秒（s）。!!! |
+| safety_radar | object | 否 | !!!#ffcc99 安全雷达参数；查询该模块时返回。!!! |
+| safety_radar.near_alarm_masked | boolean | 是 | !!!#ffcc99 近端告警是否屏蔽：true/false（屏蔽/不屏蔽）。!!! |
+| safety_radar.far_alarm_masked | boolean | 是 | !!!#ffcc99 远端告警是否屏蔽：true/false（屏蔽/不屏蔽）。!!! |
+| move_plate | object | 否 | !!!#ffcc99 样品盘搬运参数；查询该模块时返回。!!! |
+| move_plate.plate_pick_height | number | 是 | !!!#ffcc99 样品盘夹取高度，单位：毫米（mm）。!!! |
+| move_plate.lift_height | number | 是 | !!!#ffcc99 样品盘夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_sample | object | 否 | !!!#ffcc99 样品搬运参数；查询该模块时返回。!!! |
+| move_sample.tube_pick_height | number | 是 | !!!#ffcc99 试管夹取高度，单位：毫米（mm）。!!! |
+| move_sample.lift_height | number | 是 | !!!#ffcc99 试管夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_sample.test_area_tube_pick_height | number | 是 | !!!#ffcc99 磁体测试区试管夹取高度，单位：毫米（mm）。!!! |
+| move_sample.test_area_tube_lift_height | number | 是 | !!!#ffcc99 磁体测试区试管抬升高度，单位：毫米（mm）。!!! |
+| move_sample_in_out | object | 否 | !!!#ffcc99 样品进退样参数；查询该模块时返回。!!! |
+| move_sample_in_out.position_3_wait_time | number | 是 | !!!#ffcc99 横移杆到达位置 3 后的等待时间，单位：秒（s）。!!! |
 
 ### 请求示例
 
@@ -1774,7 +1734,7 @@
 
 ### 响应示例
 
-!!!#ffcc99 电爪参数查询响应示例增加 `rack_position` 和 `tube_position`。!!!
+!!!#ffcc99 参数查询响应删除 `robot.acc` 和 `crossbar.speed`，并增加电爪松开位置、横移杆动作超时、安全雷达及三类样品搬运参数。!!!
 
 ```json
 {
@@ -1785,22 +1745,39 @@
   "message": "OK",
   "data": {
     "robot": {
-      "speed": 50,
-      "acc": 100
+      "speed": 50
     },
     "gripper": {
       "speed": 50,
       "rack_force": 20,
       "tube_force": 30,
       "rack_position": 25,
-      "tube_position": 10
+      "tube_position": 10,
+      "release_position": 40
     },
     "camera": {
       "exposure": 20,
       "gain": 1.5
     },
     "crossbar": {
-      "speed": 50
+      "action_timeout": 30
+    },
+    "safety_radar": {
+      "near_alarm_masked": false,
+      "far_alarm_masked": false
+    },
+    "move_plate": {
+      "plate_pick_height": 120,
+      "lift_height": 50
+    },
+    "move_sample": {
+      "tube_pick_height": 80,
+      "lift_height": 40,
+      "test_area_tube_pick_height": 95,
+      "test_area_tube_lift_height": 45
+    },
+    "move_sample_in_out": {
+      "position_3_wait_time": 3
     }
   }
 }
@@ -1810,7 +1787,7 @@
 
 按模块设置整机参数。未包含的模块不修改；每个模块内未包含的字段不修改。
 
-!!!#ffcc99 电爪参数增加样品架位置和试管位置。!!!
+!!!#ffcc99 机械臂删除加速度参数；电爪增加松开位置；横移杆删除速度并增加动作超时时间；新增安全雷达、样品盘搬运、样品搬运和样品进退样参数。!!!
 
 | 命令 | 说明 |
 | --- | --- |
@@ -1822,7 +1799,6 @@
 | --- | --- | --- | --- |
 | robot | object | 否 | 机械臂参数。 |
 | robot.speed | number | 否 | 默认速度。 |
-| robot.acc | number | 否 | 默认加速度。 |
 | robot.save | boolean | 否 | 是否保存为默认参数。 |
 | gripper | object | 否 | 电爪参数。 |
 | gripper.speed | number | 否 | 默认速度。 |
@@ -1830,14 +1806,32 @@
 | gripper.tube_force | number | 否 | 试管力度。 |
 | gripper.rack_position | number | 否 | !!!#ffcc99 样品架位置。!!! |
 | gripper.tube_position | number | 否 | !!!#ffcc99 试管位置。!!! |
+| gripper.release_position | number | 否 | !!!#ffcc99 松开位置。!!! |
 | gripper.save | boolean | 否 | 是否保存为默认参数。 |
 | camera | object | 否 | 摄像头参数。 |
 | camera.exposure | number | 否 | 曝光参数。 |
 | camera.gain | number | 否 | 增益参数。 |
 | camera.save | boolean | 否 | 是否保存为默认参数。 |
 | crossbar | object | 否 | 横移杆参数。 |
-| crossbar.speed | number | 否 | 默认速度。 |
+| crossbar.action_timeout | number | 否 | !!!#ffcc99 动作超时时间，单位：秒（s）。!!! |
 | crossbar.save | boolean | 否 | 是否保存为默认参数。 |
+| safety_radar | object | 否 | !!!#ffcc99 安全雷达参数。!!! |
+| safety_radar.near_alarm_masked | boolean | 否 | !!!#ffcc99 近端告警是否屏蔽：true/false（屏蔽/不屏蔽）。!!! |
+| safety_radar.far_alarm_masked | boolean | 否 | !!!#ffcc99 远端告警是否屏蔽：true/false（屏蔽/不屏蔽）。!!! |
+| safety_radar.save | boolean | 否 | !!!#ffcc99 是否保存为默认参数。!!! |
+| move_plate | object | 否 | !!!#ffcc99 样品盘搬运参数。!!! |
+| move_plate.plate_pick_height | number | 否 | !!!#ffcc99 样品盘夹取高度，单位：毫米（mm）。!!! |
+| move_plate.lift_height | number | 否 | !!!#ffcc99 样品盘夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_plate.save | boolean | 否 | !!!#ffcc99 是否保存为默认参数。!!! |
+| move_sample | object | 否 | !!!#ffcc99 样品搬运参数。!!! |
+| move_sample.tube_pick_height | number | 否 | !!!#ffcc99 试管夹取高度，单位：毫米（mm）。!!! |
+| move_sample.lift_height | number | 否 | !!!#ffcc99 试管夹取后的抬升高度，单位：毫米（mm）。!!! |
+| move_sample.test_area_tube_pick_height | number | 否 | !!!#ffcc99 磁体测试区试管夹取高度，单位：毫米（mm）。!!! |
+| move_sample.test_area_tube_lift_height | number | 否 | !!!#ffcc99 磁体测试区试管抬升高度，单位：毫米（mm）。!!! |
+| move_sample.save | boolean | 否 | !!!#ffcc99 是否保存为默认参数。!!! |
+| move_sample_in_out | object | 否 | !!!#ffcc99 样品进退样参数。!!! |
+| move_sample_in_out.position_3_wait_time | number | 否 | !!!#ffcc99 横移杆到达位置 3 后的等待时间，单位：秒（s）。!!! |
+| move_sample_in_out.save | boolean | 否 | !!!#ffcc99 是否保存为默认参数。!!! |
 
 ### 响应 data 字段
 
@@ -1855,10 +1849,22 @@
 | crossbar | object | 否 | 横移杆参数设置结果；未设置该模块时可不返回。 |
 | crossbar.action_status | string | 是 | 设置结果：success/failed（成功/失败）。 |
 | crossbar.failed_reason | string | 是 | 失败原因；成功时为 "NULL"。 |
+| safety_radar | object | 否 | !!!#ffcc99 安全雷达参数设置结果；未设置该模块时可不返回。!!! |
+| safety_radar.action_status | string | 是 | !!!#ffcc99 设置结果：success/failed（成功/失败）。!!! |
+| safety_radar.failed_reason | string | 是 | !!!#ffcc99 失败原因；成功时为 "NULL"。!!! |
+| move_plate | object | 否 | !!!#ffcc99 样品盘搬运参数设置结果；未设置该模块时可不返回。!!! |
+| move_plate.action_status | string | 是 | !!!#ffcc99 设置结果：success/failed（成功/失败）。!!! |
+| move_plate.failed_reason | string | 是 | !!!#ffcc99 失败原因；成功时为 "NULL"。!!! |
+| move_sample | object | 否 | !!!#ffcc99 样品搬运参数设置结果；未设置该模块时可不返回。!!! |
+| move_sample.action_status | string | 是 | !!!#ffcc99 设置结果：success/failed（成功/失败）。!!! |
+| move_sample.failed_reason | string | 是 | !!!#ffcc99 失败原因；成功时为 "NULL"。!!! |
+| move_sample_in_out | object | 否 | !!!#ffcc99 样品进退样参数设置结果；未设置该模块时可不返回。!!! |
+| move_sample_in_out.action_status | string | 是 | !!!#ffcc99 设置结果：success/failed（成功/失败）。!!! |
+| move_sample_in_out.failed_reason | string | 是 | !!!#ffcc99 失败原因；成功时为 "NULL"。!!! |
 
 ### 请求示例
 
-!!!#ffcc99 电爪参数示例增加 `rack_position` 和 `tube_position`。!!!
+!!!#ffcc99 以下示例同时设置全部参数模块；未包含的模块或字段不修改。!!!
 
 ```json
 {
@@ -1868,7 +1874,6 @@
   "params": {
     "robot": {
       "speed": 50,
-      "acc": 100,
       "save": true
     },
     "gripper": {
@@ -1877,6 +1882,7 @@
       "tube_force": 30,
       "rack_position": 25,
       "tube_position": 10,
+      "release_position": 40,
       "save": true
     },
     "camera": {
@@ -1885,7 +1891,28 @@
       "save": true
     },
     "crossbar": {
-      "speed": 50,
+      "action_timeout": 30,
+      "save": true
+    },
+    "safety_radar": {
+      "near_alarm_masked": false,
+      "far_alarm_masked": false,
+      "save": true
+    },
+    "move_plate": {
+      "plate_pick_height": 120,
+      "lift_height": 50,
+      "save": true
+    },
+    "move_sample": {
+      "tube_pick_height": 80,
+      "lift_height": 40,
+      "test_area_tube_pick_height": 95,
+      "test_area_tube_lift_height": 45,
+      "save": true
+    },
+    "move_sample_in_out": {
+      "position_3_wait_time": 3,
       "save": true
     }
   }
@@ -1915,6 +1942,22 @@
       "failed_reason": "NULL"
     },
     "crossbar": {
+      "action_status": "success",
+      "failed_reason": "NULL"
+    },
+    "safety_radar": {
+      "action_status": "success",
+      "failed_reason": "NULL"
+    },
+    "move_plate": {
+      "action_status": "success",
+      "failed_reason": "NULL"
+    },
+    "move_sample": {
+      "action_status": "success",
+      "failed_reason": "NULL"
+    },
+    "move_sample_in_out": {
       "action_status": "success",
       "failed_reason": "NULL"
     }
@@ -1990,14 +2033,14 @@
 | 7003 | robot     | 机械臂未回零          | 执行回零。                                 |
 | 7004 | robot     | 机械臂超软限位         | 检查目标位置和软限位配置。                         |
 | 7005 | robot     | 机械臂报警           | 查看机械臂报警信息，排除后复位。                      |
-| 7006 | robot     | 机械臂运动失败         | 检查轴参数、速度、加速度和运动路径。                    |
+| 7006 | robot     | 机械臂运动失败         | !!!#ffcc99 检查轴参数、速度和运动路径。!!!                    |
 | 8001 | gripper   | 电爪离线            | 检查电爪供电和通信。                            |
 | 8002 | gripper   | 电爪打开失败          | 检查电爪状态和开度限制。                          |
 | 8003 | gripper   | 电爪关闭失败          | 检查电爪状态、样品姿态和夹持参数。                     |
 | 8004 | gripper   | !!!#ffcc99 电爪运行故障!!! | !!!#ffcc99 查询电爪状态并根据 `fault_status` 排查故障。!!! |
 | 8005 | gripper   | 夹取失败            | 检查电爪、样品姿态和夹持力度。                       |
 | 9001 | param     | 不支持的参数模块或字段     | 检查整机参数模块和字段名称。                        |
-| 9002 | param     | 参数超出允许范围        | !!!#ffcc99 检查速度、加速度、力度、位置、曝光和增益取值。!!! |
+| 9002 | param     | 参数超出允许范围        | !!!#ffcc99 检查速度、力度、位置、高度、超时时间、等待时间、曝光和增益取值。!!! |
 | 9003 | param     | 参数保存失败          | 检查设备存储状态，必要时重新设置。                     |
 | 9501 | system    | 执行超时            | 查询设备状态，确认动作是否卡住后重试。                   |
 | 9502 | system    | 设备内部异常          | 查看设备日志或联系设备维护人员。                      |

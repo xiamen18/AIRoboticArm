@@ -128,11 +128,34 @@ describe('电爪命令与参数表单', () => {
     expect(screen.queryByRole('spinbutton', { name: '速度' })).not.toBeInTheDocument()
   })
 
-  it('整机参数设置显示样品架和试管位置', () => {
+  it('整机参数设置显示新版电爪、横移杆和样品流程参数', () => {
     render(<CommandForm cmd="set_machine_param" />)
 
     expect(screen.getByRole('spinbutton', { name: '样品架位置' })).toHaveValue(25)
     expect(screen.getByRole('spinbutton', { name: '试管位置' })).toHaveValue(10)
+    expect(screen.getByRole('spinbutton', { name: '松开位置' })).toHaveValue(40)
+    expect(screen.getByRole('spinbutton', { name: '动作超时时间 (s)' })).toHaveValue(30)
+    expect(screen.getByRole('checkbox', { name: '近端告警屏蔽' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: '远端告警屏蔽' })).not.toBeChecked()
+    expect(screen.getByRole('spinbutton', { name: '样品盘夹取高度 (mm)' })).toHaveValue(120)
+    expect(screen.getByRole('spinbutton', { name: '试管夹取高度 (mm)' })).toHaveValue(80)
+    expect(screen.getByRole('spinbutton', { name: '磁体测试区试管夹取高度 (mm)' })).toHaveValue(95)
+    expect(screen.getByRole('spinbutton', { name: '磁体测试区试管抬升高度 (mm)' })).toHaveValue(45)
+    expect(screen.getByRole('spinbutton', { name: '位置 3 等待时间 (s)' })).toHaveValue(3)
+    expect(screen.queryByRole('spinbutton', { name: '加速度' })).not.toBeInTheDocument()
+
+    const crossbar = screen.getByRole('group', { name: /crossbar · 横移杆/ })
+    expect(within(crossbar).queryByRole('spinbutton', { name: '速度' })).not.toBeInTheDocument()
+  })
+
+  it('整机参数查询提供全部八个模块', () => {
+    render(<CommandForm cmd="get_machine_param" />)
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(8)
+    expect(screen.getByRole('checkbox', { name: /safety_radar · 安全雷达/ })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /move_plate · 样品盘搬运/ })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /move_sample · 样品搬运/ })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /move_sample_in_out · 样品进退样/ })).toBeInTheDocument()
   })
 })
 
@@ -151,12 +174,5 @@ describe('安全雷达命令表单', () => {
 
     expect(screen.getByText('{}')).toBeInTheDocument()
     expect(screen.getByText('此命令不需要参数，可直接发送。')).toBeInTheDocument()
-  })
-
-  it('屏蔽控制同时显示近端和远端开关', () => {
-    render(<CommandForm cmd="set_safety_radar_mask" />)
-
-    expect(screen.getByRole('checkbox', { name: /近端告警屏蔽/ })).not.toBeChecked()
-    expect(screen.getByRole('checkbox', { name: /远端告警屏蔽/ })).not.toBeChecked()
   })
 })

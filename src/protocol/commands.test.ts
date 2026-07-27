@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { buildRequest, COMMAND_MAP, COMMANDS, createRequestId, DEVICE_COMMANDS, GRIPPER_ACTIONS, GRIPPER_DEVICES, normalizeParams, parseRawRequest, syncSampleNulls, TRICOLOR_LIGHT_MODES } from './commands'
+import { buildRequest, COMMAND_MAP, COMMANDS, createRequestId, DEVICE_COMMANDS, GRIPPER_ACTIONS, GRIPPER_DEVICES, MACHINE_PARAM_MODULES, normalizeParams, parseRawRequest, syncSampleNulls, TRICOLOR_LIGHT_MODES } from './commands'
 
 describe('协议命令注册表', () => {
-  it('完整注册 25 条唯一命令', () => {
-    expect(COMMANDS).toHaveLength(25)
-    expect(new Set(COMMANDS.map((command) => command.cmd))).toHaveLength(25)
-    expect(COMMAND_MAP.size).toBe(25)
+  it('完整注册 24 条唯一命令', () => {
+    expect(COMMANDS).toHaveLength(24)
+    expect(new Set(COMMANDS.map((command) => command.cmd))).toHaveLength(24)
+    expect(COMMAND_MAP.size).toBe(24)
+    expect(COMMAND_MAP.has('set_safety_radar_mask')).toBe(false)
   })
 
   it.each(COMMANDS.filter((item) => !['move_plate', 'move_sample', 'move_sample_in_out'].includes(item.cmd)))('$cmd 默认参数可通过 schema', (definition) => {
@@ -177,12 +178,15 @@ describe('条件参数与数组约束', () => {
     expect(schema.safeParse({ device: 'tube', action: 'close', position: 25 }).success).toBe(false)
   })
 
-  it('安全雷达屏蔽要求近端和远端状态均为布尔值', () => {
-    const schema = COMMAND_MAP.get('set_safety_radar_mask')!.schema
-    expect(schema.safeParse({ near_alarm_masked: true, far_alarm_masked: false }).success).toBe(true)
-    expect(schema.safeParse({ near_alarm_masked: true }).success).toBe(false)
-    expect(schema.safeParse({ near_alarm_masked: 'true', far_alarm_masked: false }).success).toBe(false)
-    expect(schema.safeParse({ near_alarm_masked: true, far_alarm_masked: false, extra: true }).success).toBe(false)
+  it('整机参数设置拒绝已删除的机械臂加速度和横移杆速度', () => {
+    const definition = COMMAND_MAP.get('set_machine_param')!
+    const withRobotAcc = structuredClone(definition.defaults)
+    ;(withRobotAcc.robot as Record<string, unknown>).acc = 100
+    expect(definition.schema.safeParse(withRobotAcc).success).toBe(false)
+
+    const withCrossbarSpeed = structuredClone(definition.defaults)
+    ;(withCrossbarSpeed.crossbar as Record<string, unknown>).speed = 50
+    expect(definition.schema.safeParse(withCrossbarSpeed).success).toBe(false)
   })
 })
 
@@ -195,19 +199,20 @@ describe('请求生成', () => {
     expect(second).not.toBe(first)
   })
 
-  it('将查询模块数组转换为空对象字段', () => {
-    expect(normalizeParams('get_machine_param', { modules: ['robot', 'camera'] })).toEqual({ robot: {}, camera: {} })
+  it('将八个查询模块转换为空对象字段', () => {
+    const params = normalizeParams('get_machine_param', { modules: [...MACHINE_PARAM_MODULES] })
+    expect(params).toEqual(Object.fromEntries(MACHINE_PARAM_MODULES.map((module) => [module, {}])))
   })
 
   it('只发送已启用的参数模块并移除空值', () => {
     const params = normalizeParams('set_machine_param', {
-      robot: { enabled: true, speed: 50, acc: '', save: false },
+      robot: { enabled: true, speed: 50, save: false },
       camera: { enabled: false, exposure: 20, save: false },
     })
     expect(params).toEqual({ robot: { speed: 50, save: false } })
   })
 
-  it('整机参数设置发送样品架和试管位置', () => {
+  it('整机参数设置发送电爪的样品架、试管和松开位置', () => {
     const params = normalizeParams('set_machine_param', {
       gripper: {
         enabled: true,
@@ -216,11 +221,29 @@ describe('请求生成', () => {
         tube_force: 30,
         rack_position: 25,
         tube_position: 10,
+        release_position: 40,
         save: true,
       },
     })
     expect(params).toEqual({
-      gripper: { speed: 50, rack_force: 20, tube_force: 30, rack_position: 25, tube_position: 10, save: true },
+      gripper: { speed: 50, rack_force: 20, tube_force: 30, rack_position: 25, tube_position: 10, release_position: 40, save: true },
+    })
+  })
+
+  it('通过整机参数设置发送横移杆、安全雷达和样品流程参数', () => {
+    const definition = COMMAND_MAP.get('set_machine_param')!
+    const formParams = structuredClone(definition.defaults)
+    for (const module of MACHINE_PARAM_MODULES) {
+      ;(formParams[module] as Record<string, unknown>).enabled = !['robot', 'gripper', 'camera'].includes(module)
+    }
+
+    const request = buildRequest(definition.cmd, definition.schema.parse(formParams), 'REQ-PARAM-1')
+    expect(request.params).toEqual({
+      crossbar: { action_timeout: 30, save: false },
+      safety_radar: { near_alarm_masked: false, far_alarm_masked: false, save: false },
+      move_plate: { plate_pick_height: 120, lift_height: 50, save: false },
+      move_sample: { tube_pick_height: 80, lift_height: 40, test_area_tube_pick_height: 95, test_area_tube_lift_height: 45, save: false },
+      move_sample_in_out: { position_3_wait_time: 3, save: false },
     })
   })
 
@@ -283,15 +306,4 @@ describe('请求生成', () => {
     })
   })
 
-  it('安全雷达屏蔽请求同时发送近端和远端状态', () => {
-    const definition = COMMAND_MAP.get('set_safety_radar_mask')!
-    const params = definition.schema.parse({ near_alarm_masked: false, far_alarm_masked: true })
-
-    expect(buildRequest(definition.cmd, params, 'REQ-RADAR-1')).toEqual({
-      msg_type: 'command',
-      cmd: 'set_safety_radar_mask',
-      request_id: 'REQ-RADAR-1',
-      params: { near_alarm_masked: false, far_alarm_masked: true },
-    })
-  })
 })

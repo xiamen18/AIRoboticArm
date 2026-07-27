@@ -6,10 +6,10 @@ import { CommandNav } from './CommandNav'
 afterEach(cleanup)
 
 describe('CommandNav', () => {
-  it('展示 8 个模块和全部 25 条命令', () => {
+  it('展示 8 个模块和全部 24 条命令', () => {
     render(<CommandNav selected="heartbeat" onSelect={() => undefined} />)
-    expect(screen.getAllByRole('button')).toHaveLength(25)
-    expect(screen.getByText('25 CMD')).toBeInTheDocument()
+    expect(screen.getAllByRole('button')).toHaveLength(24)
+    expect(screen.getByText('24 CMD')).toBeInTheDocument()
     expect(screen.getByText('通用控制')).toBeInTheDocument()
     expect(screen.getByText('整机参数')).toBeInTheDocument()
     expect(screen.getByText('四轴运动')).toBeInTheDocument()
@@ -22,7 +22,7 @@ describe('CommandNav', () => {
     expect(screen.queryByText('样品释放')).not.toBeInTheDocument()
     expect(screen.getByText('安全雷达')).toBeInTheDocument()
     expect(screen.getByText('安全雷达状态')).toBeInTheDocument()
-    expect(screen.getByText('安全雷达屏蔽')).toBeInTheDocument()
+    expect(screen.queryByText('安全雷达屏蔽')).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
       '通用控制',
       '样品流程',

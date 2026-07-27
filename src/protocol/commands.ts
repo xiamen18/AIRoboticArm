@@ -25,6 +25,7 @@ export const DEVICE_COMMANDS = ['start', 'pause', 'stop', 'reset'] as const
 export const TRICOLOR_LIGHT_MODES = ['off', 'red', 'green', 'blue', 'red_flash', 'green_flash', 'blue_flash'] as const
 export const GRIPPER_DEVICES = ['rack', 'tube'] as const
 export const GRIPPER_ACTIONS = ['open', 'close'] as const
+export const MACHINE_PARAM_MODULES = ['robot', 'gripper', 'camera', 'crossbar', 'safety_radar', 'move_plate', 'move_sample', 'move_sample_in_out'] as const
 const tricolorLightMode = z.enum(TRICOLOR_LIGHT_MODES)
 
 function maxArea(type: string): number {
@@ -167,31 +168,34 @@ export const COMMANDS: CommandDefinition[] = [
   },
   { cmd: 'get_safety_radar_status', name: '安全雷达状态', description: '读取近端、远端触发和告警屏蔽状态', group: '安全雷达', kind: 'query', schema: emptySchema, defaults: {} },
   {
-    cmd: 'set_safety_radar_mask', name: '安全雷达屏蔽', description: '同时设置近端和远端告警屏蔽状态', group: '安全雷达', kind: 'critical',
-    schema: z.object({ near_alarm_masked: z.boolean(), far_alarm_masked: z.boolean() }).strict(),
-    defaults: { near_alarm_masked: false, far_alarm_masked: false },
-  },
-  {
     cmd: 'get_machine_param', name: '整机参数查询', description: '查询全部或指定模块参数', group: '整机参数', kind: 'query',
-    schema: z.object({ modules: z.array(z.enum(['robot', 'gripper', 'camera', 'crossbar'])) }), defaults: { modules: [] },
+    schema: z.object({ modules: z.array(z.enum(MACHINE_PARAM_MODULES)) }), defaults: { modules: [] },
   },
   {
     cmd: 'set_machine_param', name: '整机参数设置', description: '按模块修改并选择是否保存默认参数', group: '整机参数', kind: 'control',
     schema: z.object({
-      robot: z.object({ enabled: z.boolean(), speed: optionalNumber, acc: optionalNumber, save: z.boolean() }),
-      gripper: z.object({ enabled: z.boolean(), speed: optionalNumber, rack_force: optionalNumber, tube_force: optionalNumber, rack_position: optionalNumber, tube_position: optionalNumber, save: z.boolean() }),
-      camera: z.object({ enabled: z.boolean(), exposure: optionalNumber, gain: optionalNumber, save: z.boolean() }),
-      crossbar: z.object({ enabled: z.boolean(), speed: optionalNumber, save: z.boolean() }),
+      robot: z.object({ enabled: z.boolean(), speed: optionalNumber, save: z.boolean() }).strict(),
+      gripper: z.object({ enabled: z.boolean(), speed: optionalNumber, rack_force: optionalNumber, tube_force: optionalNumber, rack_position: optionalNumber, tube_position: optionalNumber, release_position: optionalNumber, save: z.boolean() }).strict(),
+      camera: z.object({ enabled: z.boolean(), exposure: optionalNumber, gain: optionalNumber, save: z.boolean() }).strict(),
+      crossbar: z.object({ enabled: z.boolean(), action_timeout: optionalNumber, save: z.boolean() }).strict(),
+      safety_radar: z.object({ enabled: z.boolean(), near_alarm_masked: z.boolean(), far_alarm_masked: z.boolean(), save: z.boolean() }).strict(),
+      move_plate: z.object({ enabled: z.boolean(), plate_pick_height: optionalNumber, lift_height: optionalNumber, save: z.boolean() }).strict(),
+      move_sample: z.object({ enabled: z.boolean(), tube_pick_height: optionalNumber, lift_height: optionalNumber, test_area_tube_pick_height: optionalNumber, test_area_tube_lift_height: optionalNumber, save: z.boolean() }).strict(),
+      move_sample_in_out: z.object({ enabled: z.boolean(), position_3_wait_time: optionalNumber, save: z.boolean() }).strict(),
     }).superRefine((value, context) => {
-      if (![value.robot.enabled, value.gripper.enabled, value.camera.enabled, value.crossbar.enabled].some(Boolean)) {
+      if (!MACHINE_PARAM_MODULES.some((module) => value[module].enabled)) {
         context.addIssue({ code: 'custom', message: '至少启用一个参数模块' })
       }
     }),
     defaults: {
-      robot: { enabled: true, speed: 50, acc: 100, save: false },
-      gripper: { enabled: false, speed: 50, rack_force: 20, tube_force: 30, rack_position: 25, tube_position: 10, save: false },
+      robot: { enabled: true, speed: 50, save: false },
+      gripper: { enabled: false, speed: 50, rack_force: 20, tube_force: 30, rack_position: 25, tube_position: 10, release_position: 40, save: false },
       camera: { enabled: false, exposure: 20, gain: 1.5, save: false },
-      crossbar: { enabled: false, speed: 50, save: false },
+      crossbar: { enabled: false, action_timeout: 30, save: false },
+      safety_radar: { enabled: false, near_alarm_masked: false, far_alarm_masked: false, save: false },
+      move_plate: { enabled: false, plate_pick_height: 120, lift_height: 50, save: false },
+      move_sample: { enabled: false, tube_pick_height: 80, lift_height: 40, test_area_tube_pick_height: 95, test_area_tube_lift_height: 45, save: false },
+      move_sample_in_out: { enabled: false, position_3_wait_time: 3, save: false },
     },
   },
 ]
