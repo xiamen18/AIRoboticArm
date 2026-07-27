@@ -28,6 +28,57 @@ describe('协议命令注册表', () => {
 })
 
 describe('条件参数与数组约束', () => {
+  it('所有专用命令都把 area_id 解析为整数', () => {
+    const cases: Array<{ cmd: string; params: Record<string, unknown>; count: number }> = [
+      { cmd: 'scan_qrcode', params: { area_type: 'platform', area_id: '5' }, count: 1 },
+      {
+        cmd: 'move_plate',
+        params: {
+          source: { area_type: 'transfer', area_id: '1', plate_qr_code: 'PLATE-1' },
+          target: { area_type: 'platform', area_id: '5' },
+        },
+        count: 2,
+      },
+      {
+        cmd: 'move_sample',
+        params: {
+          source: { area_type: 'platform', area_id: '5', plate_qr_code: 'PLATE-1', hole_id: 1, sample_qr_code: 'SAMPLE-1' },
+          target: { area_type: 'test_area', area_id: '1', plate_qr_code: 'NULL', hole_id: 'NULL' },
+        },
+        count: 2,
+      },
+      {
+        cmd: 'move_sample_in_out',
+        params: {
+          sample_in: {
+            source: { area_type: 'platform', area_id: '5', plate_qr_code: 'PLATE-1', hole_id: 1, sample_qr_code: 'SAMPLE-IN' },
+            target: { area_type: 'test_area', area_id: '1', plate_qr_code: 'NULL', hole_id: 'NULL' },
+          },
+          sample_out: {
+            source: { area_type: 'test_area', area_id: '1', plate_qr_code: 'NULL', hole_id: 'NULL', sample_qr_code: 'SAMPLE-OUT' },
+            target: { area_type: 'platform', area_id: '6', plate_qr_code: 'PLATE-2', hole_id: 2 },
+          },
+        },
+        count: 4,
+      },
+      { cmd: 'set_rgb_light', params: { body: [{ area_id: '1', mode: 'green' }, { area_id: '2', mode: 'red_flash' }] }, count: 2 },
+      { cmd: 'robot_point_control', params: { area_type: 'transfer', area_id: '4', point_type: 'photo' }, count: 1 },
+    ]
+
+    const collectAreaIds = (value: unknown): unknown[] => {
+      if (Array.isArray(value)) return value.flatMap(collectAreaIds)
+      if (!value || typeof value !== 'object') return []
+      return Object.entries(value).flatMap(([key, item]) => key === 'area_id' ? [item] : collectAreaIds(item))
+    }
+
+    for (const testCase of cases) {
+      const parsed = COMMAND_MAP.get(testCase.cmd)!.schema.parse(testCase.params)
+      const areaIds = collectAreaIds(parsed)
+      expect(areaIds).toHaveLength(testCase.count)
+      expect(areaIds.every((areaId) => typeof areaId === 'number' && Number.isInteger(areaId))).toBe(true)
+    }
+  })
+
   it('限制不同区域类型的区域编号', () => {
     const schema = COMMAND_MAP.get('scan_qrcode')!.schema
     expect(schema.safeParse({ area_type: 'transfer', area_id: 5 }).success).toBe(false)

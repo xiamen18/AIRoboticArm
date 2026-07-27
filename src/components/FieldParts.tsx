@@ -2,6 +2,10 @@ import type { FieldError, UseFormRegister } from 'react-hook-form'
 
 export type FormValues = Record<string, any>
 
+const NUMBER_REGISTER_OPTIONS = {
+  setValueAs: (value: unknown) => value === '' ? '' : Number(value),
+}
+
 interface FieldProps {
   label: string
   name: string
@@ -19,7 +23,13 @@ export function Field({ label, name, register, type = 'text', error, ...rest }: 
   return (
     <label className="field">
       <span>{label}</span>
-      <input type={type} autoComplete="off" {...rest} {...register(name)} aria-invalid={!!error} />
+      <input
+        type={type}
+        autoComplete="off"
+        {...rest}
+        {...register(name, type === 'number' ? NUMBER_REGISTER_OPTIONS : undefined)}
+        aria-invalid={!!error}
+      />
       {error ? <small className="field-error">{error.message}</small> : null}
     </label>
   )

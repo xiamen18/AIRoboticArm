@@ -38,7 +38,9 @@ export function CommandWorkspace({ cmd, connected, busy, transaction, onSend }: 
 
   const switchMode = (next: 'form' | 'raw') => {
     if (next === 'raw' && mode === 'form') {
-      const params = SAMPLE_MOVE_COMMANDS.has(cmd) ? syncSampleNulls(form.getValues()) : form.getValues()
+      const formParams = SAMPLE_MOVE_COMMANDS.has(cmd) ? syncSampleNulls(form.getValues()) : form.getValues()
+      const parsed = definition.schema.safeParse(formParams)
+      const params = parsed.success ? parsed.data : formParams
       setRaw(JSON.stringify(buildRequest(cmd, params, createRequestId()), null, 2))
     }
     setRawError('')
