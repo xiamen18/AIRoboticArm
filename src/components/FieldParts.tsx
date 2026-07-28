@@ -3,7 +3,11 @@ import type { FieldError, UseFormRegister } from 'react-hook-form'
 export type FormValues = Record<string, any>
 
 const NUMBER_REGISTER_OPTIONS = {
-  setValueAs: (value: unknown) => value === '' ? '' : Number(value),
+  setValueAs: (value: unknown) => {
+    if (value === '' || value === 'NULL' || value === null || value === undefined) return value
+    const numericValue = Number(value)
+    return Number.isNaN(numericValue) ? value : numericValue
+  },
 }
 
 interface FieldProps {

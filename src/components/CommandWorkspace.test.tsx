@@ -67,6 +67,66 @@ describe('命令表单数值类型', () => {
     expect(readRawParams().body[0].area_id).toBe(9)
   })
 
+  it('单进样在校验前将 test_area 孔位固定为字符串 NULL', async () => {
+    const onSend = renderWorkspace('move_sample', true)
+    const source = screen.getByRole('group', { name: '源位置' })
+    const target = screen.getByRole('group', { name: '目标位置' })
+
+    fireEvent.change(within(source).getByRole('textbox', { name: '样品盘二维码' }), { target: { value: 'PLATE-IN' } })
+    fireEvent.change(within(source).getByRole('textbox', { name: '样品二维码' }), { target: { value: 'SAMPLE-IN' } })
+    await waitFor(() => expect(within(target).getByRole('textbox', { name: '孔位 ID' })).toHaveValue('NULL'))
+    fireEvent.click(screen.getByRole('button', { name: '发送命令' }))
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledOnce())
+    expect(onSend.mock.calls[0][0].params.target).toMatchObject({
+      area_type: 'test_area', plate_qr_code: 'NULL', hole_id: 'NULL',
+    })
+    expect(screen.queryByText(/received NaN/)).not.toBeInTheDocument()
+  })
+
+  it('单退样切换区域后正确恢复数字孔位并固定 test_area 的 NULL', async () => {
+    const onSend = renderWorkspace('move_sample', true)
+    const source = screen.getByRole('group', { name: '源位置' })
+    const target = screen.getByRole('group', { name: '目标位置' })
+
+    fireEvent.change(within(source).getByRole('combobox', { name: '区域类型' }), { target: { value: 'test_area' } })
+    fireEvent.change(within(target).getByRole('combobox', { name: '区域类型' }), { target: { value: 'platform' } })
+    await waitFor(() => {
+      expect(within(source).getByRole('textbox', { name: '孔位 ID' })).toHaveValue('NULL')
+      expect(within(target).getByRole('spinbutton', { name: '孔位 ID' })).toHaveValue(1)
+    })
+    fireEvent.change(within(source).getByRole('textbox', { name: '样品二维码' }), { target: { value: 'SAMPLE-OUT' } })
+    fireEvent.change(within(target).getByRole('textbox', { name: '样品盘二维码' }), { target: { value: 'PLATE-OUT' } })
+    fireEvent.click(screen.getByRole('button', { name: '发送命令' }))
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledOnce())
+    expect(onSend.mock.calls[0][0].params.source).toMatchObject({
+      area_type: 'test_area', plate_qr_code: 'NULL', hole_id: 'NULL',
+    })
+    expect(onSend.mock.calls[0][0].params.target).toMatchObject({
+      area_type: 'platform', plate_qr_code: 'PLATE-OUT', hole_id: 1,
+    })
+  })
+
+  it('组合进退样的两个 test_area 端都发送字符串 NULL', async () => {
+    const onSend = renderWorkspace('move_sample_in_out', true)
+    const sampleInSource = screen.getByRole('group', { name: '进样源位置' })
+    const sampleInTarget = screen.getByRole('group', { name: '进样目标位置' })
+    const sampleOutSource = screen.getByRole('group', { name: '退样源位置' })
+    const sampleOutTarget = screen.getByRole('group', { name: '退样目标位置' })
+
+    fireEvent.change(within(sampleInSource).getByRole('textbox', { name: '样品盘二维码' }), { target: { value: 'PLATE-IN' } })
+    fireEvent.change(within(sampleInSource).getByRole('textbox', { name: '样品二维码' }), { target: { value: 'SAMPLE-IN' } })
+    fireEvent.change(within(sampleOutSource).getByRole('textbox', { name: '样品二维码' }), { target: { value: 'SAMPLE-OUT' } })
+    fireEvent.change(within(sampleOutTarget).getByRole('textbox', { name: '样品盘二维码' }), { target: { value: 'PLATE-OUT' } })
+    fireEvent.click(screen.getByRole('button', { name: '发送命令' }))
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledOnce())
+    const params = onSend.mock.calls[0][0].params
+    expect(params.sample_in.target).toMatchObject({ plate_qr_code: 'NULL', hole_id: 'NULL' })
+    expect(params.sample_out.source).toMatchObject({ plate_qr_code: 'NULL', hole_id: 'NULL' })
+  })
+
   it('安全雷达屏蔽状态通过整机参数设置生成报文', () => {
     renderWorkspace('set_machine_param')
 

@@ -24,8 +24,12 @@ export function CommandWorkspace({ cmd, connected, busy, transaction, onSend }: 
   const [raw, setRaw] = useState('')
   const [rawError, setRawError] = useState('')
   const resolver = useMemo(
-    () => zodResolver(definition.schema as never) as Resolver<FormValues>,
-    [definition.schema],
+    () => {
+      const schemaResolver = zodResolver(definition.schema as never) as Resolver<FormValues>
+      if (!SAMPLE_MOVE_COMMANDS.has(definition.cmd)) return schemaResolver
+      return ((values, context, options) => schemaResolver(syncSampleNulls(values), context, options)) as Resolver<FormValues>
+    },
+    [definition.cmd, definition.schema],
   )
   const form = useForm<FormValues>({ resolver, defaultValues: structuredClone(definition.defaults), mode: 'onSubmit' })
 

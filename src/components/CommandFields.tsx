@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
+import { useEffect } from 'react'
 import { useFieldArray, useWatch, type FieldErrors, type UseFormRegister, type UseFormSetValue, type Control } from 'react-hook-form'
 import { DEVICE_COMMANDS, GRIPPER_ACTIONS, GRIPPER_DEVICES, MACHINE_PARAM_MODULES, TRICOLOR_LIGHT_MODES } from '../protocol/commands'
 import { AREA_OPTIONS, Field, PLATE_AREA_OPTIONS, SelectField, type FormValues } from './FieldParts'
@@ -56,9 +57,23 @@ const MACHINE_PARAM_MODULE_LABELS: Record<(typeof MACHINE_PARAM_MODULES)[number]
   move_sample_in_out: '样品进退样',
 }
 
-function AreaFields({ prefix, legend, plateOnly, areaOptions, register, control, errors, includeQr = false, includeHole = false, includeSampleQr = false }: any) {
+function AreaFields({ prefix, legend, plateOnly, areaOptions, register, control, setValue, errors, includeQr = false, includeHole = false, includeSampleQr = false }: any) {
   const areaType = useWatch({ control, name: `${prefix}.area_type` })
+  const plateQrCode = useWatch({ control, name: `${prefix}.plate_qr_code` })
+  const holeId = useWatch({ control, name: `${prefix}.hole_id` })
   const isTest = areaType === 'test_area'
+
+  useEffect(() => {
+    if (!areaType) return
+    if (isTest) {
+      if (includeQr && plateQrCode !== 'NULL') setValue(`${prefix}.plate_qr_code`, 'NULL', { shouldValidate: false })
+      if (includeHole && holeId !== 'NULL') setValue(`${prefix}.hole_id`, 'NULL', { shouldValidate: false })
+      return
+    }
+    if (includeQr && plateQrCode === 'NULL') setValue(`${prefix}.plate_qr_code`, '', { shouldValidate: false })
+    if (includeHole && (holeId === 'NULL' || Number.isNaN(holeId))) setValue(`${prefix}.hole_id`, 1, { shouldValidate: false })
+  }, [areaType, holeId, includeHole, includeQr, isTest, plateQrCode, prefix, setValue])
+
   return (
     <fieldset className="field-cluster">
       <legend>{legend ?? (prefix === 'source' ? '源位置' : '目标位置')}</legend>
@@ -73,20 +88,20 @@ function AreaFields({ prefix, legend, plateOnly, areaOptions, register, control,
   )
 }
 
-function SampleInOutFields({ register, control, errors }: Props) {
+function SampleInOutFields({ register, control, setValue, errors }: Props) {
   return <div className="sample-in-out-editor">
     <section className="sample-task">
       <div className="sample-task-heading"><span>IN</span><h3>进样任务</h3></div>
       <div className="paired-clusters">
-        <AreaFields prefix="sample_in.source" legend="进样源位置" areaOptions={PLATE_AREA_OPTIONS} includeQr includeHole includeSampleQr register={register} control={control} errors={errors} />
-        <AreaFields prefix="sample_in.target" legend="进样目标位置" areaOptions={TEST_AREA_OPTIONS} includeQr includeHole register={register} control={control} errors={errors} />
+        <AreaFields prefix="sample_in.source" legend="进样源位置" areaOptions={PLATE_AREA_OPTIONS} includeQr includeHole includeSampleQr register={register} control={control} setValue={setValue} errors={errors} />
+        <AreaFields prefix="sample_in.target" legend="进样目标位置" areaOptions={TEST_AREA_OPTIONS} includeQr includeHole register={register} control={control} setValue={setValue} errors={errors} />
       </div>
     </section>
     <section className="sample-task">
       <div className="sample-task-heading"><span>OUT</span><h3>退样任务</h3></div>
       <div className="paired-clusters">
-        <AreaFields prefix="sample_out.source" legend="退样源位置" areaOptions={TEST_AREA_OPTIONS} includeQr includeHole includeSampleQr register={register} control={control} errors={errors} />
-        <AreaFields prefix="sample_out.target" legend="退样目标位置" areaOptions={PLATE_AREA_OPTIONS} includeQr includeHole register={register} control={control} errors={errors} />
+        <AreaFields prefix="sample_out.source" legend="退样源位置" areaOptions={TEST_AREA_OPTIONS} includeQr includeHole includeSampleQr register={register} control={control} setValue={setValue} errors={errors} />
+        <AreaFields prefix="sample_out.target" legend="退样目标位置" areaOptions={PLATE_AREA_OPTIONS} includeQr includeHole register={register} control={control} setValue={setValue} errors={errors} />
       </div>
     </section>
   </div>
@@ -179,15 +194,15 @@ function MachineParamFields({ register, errors }: Props) {
 }
 
 export function CommandFields(props: Props) {
-  const { cmd, register, control, errors } = props
+  const { cmd, register, control, setValue, errors } = props
   if (['heartbeat', 'get_crossbar_status', 'get_rgb_light_status', 'get_robot_status', 'get_gripper_status', 'get_safety_radar_status'].includes(cmd)) return <div className="empty-params"><code>{'{}'}</code><p>此命令不需要参数，可直接发送。</p></div>
   if (cmd === 'get_device_status') return <SelectField label="状态类型" name="status_type" register={register} options={enumOptions(['UN', 'CM', 'EM', 'all'])} error={errorAt(errors, 'status_type')} />
   if (cmd === 'set_device_mode') return <SelectField label="运行模式" name="mode" register={register} options={enumOptions(['auto', 'maintenance'])} error={errorAt(errors, 'mode')} />
   if (cmd === 'device_command') return <SelectField label="整机命令" name="command" register={register} options={enumOptions(DEVICE_COMMANDS)} error={errorAt(errors, 'command')} />
   if (cmd === 'get_area_sample_status') return <SelectField label="区域类型" name="area_type" register={register} options={AREA_OPTIONS} error={errorAt(errors, 'area_type')} />
   if (cmd === 'scan_qrcode') return <div className="form-grid cols-2"><SelectField label="区域类型" name="area_type" register={register} options={AREA_OPTIONS} error={errorAt(errors, 'area_type')} /><Field label="区域编号" name="area_id" register={register} type="number" min={1} max={29} error={errorAt(errors, 'area_id')} /></div>
-  if (cmd === 'move_plate') return <div className="paired-clusters"><AreaFields prefix="source" plateOnly includeQr register={register} control={control} errors={errors} /><AreaFields prefix="target" plateOnly register={register} control={control} errors={errors} /></div>
-  if (cmd === 'move_sample') return <div className="paired-clusters"><AreaFields prefix="source" includeQr includeHole includeSampleQr register={register} control={control} errors={errors} /><AreaFields prefix="target" includeQr includeHole register={register} control={control} errors={errors} /></div>
+  if (cmd === 'move_plate') return <div className="paired-clusters"><AreaFields prefix="source" plateOnly includeQr register={register} control={control} setValue={setValue} errors={errors} /><AreaFields prefix="target" plateOnly register={register} control={control} setValue={setValue} errors={errors} /></div>
+  if (cmd === 'move_sample') return <div className="paired-clusters"><AreaFields prefix="source" includeQr includeHole includeSampleQr register={register} control={control} setValue={setValue} errors={errors} /><AreaFields prefix="target" includeQr includeHole register={register} control={control} setValue={setValue} errors={errors} /></div>
   if (cmd === 'move_sample_in_out') return <SampleInOutFields {...props} />
   if (cmd === 'move_crossbar') return <Field label="目标位置" name="position" register={register} type="number" min={1} max={3} error={errorAt(errors, 'position')} />
   if (cmd === 'release_crossbar_sample') return <label className="switch-field"><input type="checkbox" {...register('release')} /><span className="switch" /><span><strong>顶针释放样品</strong><small>true：D3 上电，样品掉落；false：断电保持</small></span></label>
