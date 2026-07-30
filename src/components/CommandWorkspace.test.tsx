@@ -26,7 +26,7 @@ function readRawParams(): Record<string, any> {
 
 describe('命令表单数值类型', () => {
   it('专用表单发送的 area_id 为 number', async () => {
-    const onSend = renderWorkspace('scan_qrcode', true)
+    const onSend = renderWorkspace('scan_qrcode')
 
     fireEvent.change(screen.getByRole('spinbutton', { name: '区域编号' }), { target: { value: '12' } })
     fireEvent.click(screen.getByRole('button', { name: '发送命令' }))

@@ -18,7 +18,7 @@ interface Props {
   onSend(request: CommandRequest): Promise<void>
 }
 
-export function CommandWorkspace({ cmd, connected, busy, transaction, onSend }: Props) {
+export function CommandWorkspace({ cmd, busy, transaction, onSend }: Props) {
   const definition = COMMAND_MAP.get(cmd)!
   const [mode, setMode] = useState<'form' | 'raw'>('form')
   const [raw, setRaw] = useState('')
@@ -100,10 +100,10 @@ export function CommandWorkspace({ cmd, connected, busy, transaction, onSend }: 
           className={`send-button send-${definition.kind}`}
           type={mode === 'form' ? 'submit' : 'button'}
           form={mode === 'form' ? 'command-form' : undefined}
-          disabled={!connected || busy}
+          disabled={busy}
           onClick={mode === 'raw' ? submitRaw : undefined}
         >
-          <Send size={17} />{busy ? '等待设备响应…' : connected ? '发送命令' : '连接后发送'}
+          <Send size={17} />{busy ? '等待设备响应…' : '发送命令'}
         </button>
       </div>
 

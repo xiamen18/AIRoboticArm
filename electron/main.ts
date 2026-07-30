@@ -10,10 +10,10 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1600,
     height: 960,
-    minWidth: 1180,
+    minWidth: 820,
     minHeight: 720,
-    backgroundColor: '#07131f',
-    title: 'NMR 自动送样 · 通信调试台',
+    backgroundColor: '#eef1ee',
+    title: 'NMR 自动送样控制',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

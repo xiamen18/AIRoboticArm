@@ -204,6 +204,20 @@ describe('请求生成', () => {
     expect(params).toEqual(Object.fromEntries(MACHINE_PARAM_MODULES.map((module) => [module, {}])))
   })
 
+  it('设备参数面板只查询和设置机械臂与安全雷达模块', () => {
+    const query = buildRequest('get_machine_param', { modules: ['robot', 'safety_radar'] }, 'REQ-DEVICE-PARAM-GET')
+    const update = buildRequest('set_machine_param', {
+      robot: { enabled: true, speed: 72, save: true },
+      safety_radar: { enabled: true, near_alarm_masked: true, far_alarm_masked: true, save: true },
+    }, 'REQ-DEVICE-PARAM-SET')
+
+    expect(query.params).toEqual({ robot: {}, safety_radar: {} })
+    expect(update.params).toEqual({
+      robot: { speed: 72, save: true },
+      safety_radar: { near_alarm_masked: true, far_alarm_masked: true, save: true },
+    })
+  })
+
   it('只发送已启用的参数模块并移除空值', () => {
     const params = normalizeParams('set_machine_param', {
       robot: { enabled: true, speed: 50, save: false },
